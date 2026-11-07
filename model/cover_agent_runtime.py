@@ -124,6 +124,39 @@ _RENDER_REJECTION_CODES = {
     'TEXT_OVER_PROTECTED_SUBJECT', 'UNAUTHORIZED_SHIPPING_IMAGE', 'UPSTREAM_EDITABLE_CONTRACT_FAILED',
     'UPSTREAM_FONTS_FAILED', 'UPSTREAM_POSTER_CONTRACT_FAILED', 'USAGE',
     'VISIBLE_TEXT_NOT_REGISTERED'}
+_RENDER_ATTEMPT_CODES = _RENDER_REJECTION_CODES | {
+    "RENDER_PREPARE_INVALID", "RENDER_PREPARE_TOO_LARGE", "RENDER_NOT_COMPLETED",
+    "RENDER_NOT_APPROVED", "RENDER_RESPONSE_INVALID", "RENDER_SOURCE_BINDING_INVALID",
+    "RENDER_SOURCE_REPAIR_INVALID", "COVER_AGENT_RENDER_SOURCE_INVALID",
+    "RENDERER_BEGIN_NOT_ACKNOWLEDGED", "RENDERER_END_NOT_ACKNOWLEDGED",
+    "FONT_ROLE_VARIABLE_INVALID", "FONT_ROLE_DECLARATION_MUST_BE_UNIQUE", "FONT_RESPONSE_INVALID",
+    "INSTALLED_FONT_FACES_REQUIRED", "INSTALLED_FONT_FAMILY_REQUIRED", "INSTALLED_FONT_VARIABLE_REQUIRED",
+    "MANAGED_FONT_FAMILY_CONFLICT", "MANAGED_FONT_STYLE_REQUIRED", "MANAGED_FONT_VARIABLE_CONFLICT",
+    "EXTERNAL_RESOURCE_FORBIDDEN", "RESOURCE_MUST_BE_QUOTED", "PATH_OUTSIDE_JOB",
+    "WRITE_FILE_FORBIDDEN", "SYMLINK_FORBIDDEN", "IMMUTABLE_OR_STATE_FILE",
+    "LOCAL_TOOL_DEADLINE", "LOCAL_TOOL_INTERRUPTED", "LOCAL_TOOL_TIMEOUT", "LOCAL_TOOL_FAILED",
+    "BRIDGE_TIMEOUT_UNKNOWN", "BRIDGE_DISCONNECTED_UNKNOWN", "SUPPLIER_RESULT_UNKNOWN",
+    "ENOENT", "EACCES", "EEXIST", "ENOSPC", "EIO", "EMFILE", "ENFILE", "EROFS", "EDQUOT",
+    "ENOTDIR", "ENOTEMPTY", "ETIMEDOUT", "OTHER_LOCAL_RENDER_FAILURE",
+}
+
+
+def _first_render_failure_diagnostic(value):
+    keys = {"phase", "mode", "step", "code", "ordinal", "file_count", "file_bytes"}
+    if type(value) is not dict or set(value) != keys:
+        return None
+    for key, choices in (("phase", {"layout", "qc"}), ("mode", {"prepare", "render"}),
+            ("step", {"prepare", "write", "font_add", "render"})):
+        if type(value[key]) is not str or value[key] not in choices:
+            return None
+    code = value["code"]
+    if not ((type(code) is str and code in _RENDER_ATTEMPT_CODES)
+            or (value["step"] == "font_add" and type(code) is int and 1 <= code <= 255)):
+        return None
+    for key, maximum in (("ordinal", 1000000), ("file_count", 1000000), ("file_bytes", 40 * 1024 * 1024)):
+        if type(value[key]) is not int or not 0 <= value[key] <= maximum:
+            return None
+    return dict(value)
 
 
 def _render_rejection_diagnostic(value):
@@ -747,6 +780,9 @@ def cleanup_workspace(job_id):
             rejection = _render_rejection_diagnostic(value.get("last_render_rejection"))
             if rejection is not None:
                 receipt["last_local_render_rejection"] = rejection
+            attempt = _first_render_failure_diagnostic(value.get("first_render_failure"))
+            if attempt is not None:
+                receipt["first_render_failure"] = attempt
             local_tools = _local_tool_diagnostic(value.get("local_tool_activity"))
             if local_tools is not None:
                 receipt["local_tool_activity"] = local_tools
@@ -1095,7 +1131,30 @@ def _prepare_inspection_source(source, index, directory):
         "path": relative, "sha256": artifacts.digest(body), "bytes": len(body), **dimensions}
 
 
-def _prompt(context, sources):
+def _prepare_draft_base(directory, context, sources):
+    paths = "\n".join(source["path"] for source in sources)
+    files = {
+        "poster.json": json.dumps({"canvas": {"width": 1776, "height": 2368}, "scale": 1, "dpi": None}),
+        "brief.md": ("# 已冻结的报告内容与原照\n\n## 标题\n" + context["title"]
+            + "\n\n## 正文\n" + context["body"] + "\n\n## 可用原照路径\n" + paths),
+        "prompts.md": ("# 成品图片来源\n\n成品仅使用提供的原照，无成品生图指令。"
+            "\n非交付构图参考的实际指令另见 reference/composition-prompt.md。"),
+    }
+    hashes = {}
+    for name, text in files.items():
+        body = text.encode("utf-8")
+        (directory / name).write_bytes(body)
+        hashes[name] = artifacts.digest(body)
+    return hashes
+
+
+def _prompt(context, sources, *, prepared_draft=False):
+    draft_files = (
+        "系统已按冻结报告和固定画布准备brief.md/poster.json/prompts.md，保留现有文件，无需重写。"
+        "files写实际index.html、简洁且真实的design-plan.md及asset-plan.json。"
+        "如本地工具明确指出预置文件缺失或无效，按原有工具局部修复。"
+        if prepared_draft else
+        "files包含index.html/poster.json/brief.md/design-plan.md/asset-plan.json/prompts.md六个核心文件。")
     return (
         "你在NoteAI中执行完整Editable-Design营销设计Skill；遵守其概念→实际看概念→完整设计计划→"
         "原照图层/真实HTML文字→实际渲染审图和局改工作流，不仅模仿规则。"
@@ -1130,12 +1189,12 @@ def _prompt(context, sources):
         "不得添加无根据事实或Skill/安全区等设计说明文字。字体用整包已许可中文字库，必须是独立可编辑真实文字。"
         "制作index.html/poster.json、完整brief/design-plan/asset-plan/prompts/render-review等原Skill留存；"
         "完整首次设计优先一次调用cover_render({request:原渲染请求,prepare:{files:[{path,text}],fonts:[{font_id,css_var?}]}})："
-        "files包含index.html/poster.json/brief.md/design-plan.md/asset-plan.json/prompts.md六个核心文件，"
-        "完整写入同一次综合设计决定，fonts列出本次所需的已许可中文字库及角色。"
+        f"{draft_files}"
+        "将设计文件在同一次综合设计决定中写好，fonts列出本次所需的已许可中文字库及角色。"
         "prepare按文件写入→字体安装→原渲染顺序执行，render本身已统一运行poster/fonts/contract三个检查，"
         "不要为相同内容再单独调用三次检查或为每个文件另开模型轮次；按真实失败步骤局改。"
         "原cover_write/cover_check仍用于必要局改，实际审图必须等真实渲染像素返回。"
-        "执行收敛：实际看完概念后，只做一次综合设计决定，将完整HTML/poster.json和同阶段独立留存文件"
+        "执行收敛：实际看完概念后，只做一次综合设计决定，将完整HTML和同阶段需要编写的留存文件"
         "在同一轮工具调用中写好，不为每个说明文件另开一轮推理，也不反复改写已经确定的计划。"
         "首稿请求会聚焦cover_view与整包cover_render.prepare；原照精查仍可进行，任何实际本地拒绝后完整局改工具恢复。"
         "通过上述prepare在一次本地流水线完成所选字体安装与原有检查，按真实错误局改，尽早取得第一张实际预览。"
@@ -1196,6 +1255,7 @@ class Bridge:
         self._renderer_lease = None
         self.progress_phase, self.progress_revision = "design", 0
         self.model_kind = "primary"
+        self.prepared_draft_files = None
         self.model_timings, self.timing_count, self.timing_total_ms = [], 0, 0
 
     def progress(self, snapshot):
@@ -1633,6 +1693,8 @@ class Bridge:
                 for source in self.sources], "max_model_requests": None,
             "request_minimum_remaining_ms": int((provider.MIN_READ_WINDOW_SECONDS + provider.REQUEST_MARGIN_SECONDS) * 1000),
             "deadline_epoch_ms": int(deadline * 1000), **({"session_id": self.session_id, "mode": "revise"} if self.session_id else {})}
+        if self.prepared_draft_files is not None and not self.session_id:
+            start["prepared_draft_files"] = self.prepared_draft_files
         process = subprocess.Popen([os.environ.get("NOTEAI_COVER_NODE", "node"), str(worker)],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env,
             start_new_session=os.name == "posix")
@@ -1779,9 +1841,14 @@ def run_cover(*, job_id, user_id, report, sources, hooks, design_version=3,
     bridge._register_inspection_previews(inspections)
     bridge.approved_titles = [title for title in
         (context.get("approved_titles") or [context["title"], *context["title_variants"]]) if title.strip()]
+    try:
+        bridge.prepared_draft_files = _prepare_draft_base(directory, context, checked)
+    except OSError:
+        logging.warning("cover_draft_base_preparation_unavailable")
     hooks.on_stage("design")
     prompt = _prompt(context, [{**{k: value for k, value in source.items() if k != "payload"},
-        "inspection": inspection} for source, inspection in zip(checked, inspections)])
+        "inspection": inspection} for source, inspection in zip(checked, inspections)],
+        prepared_draft=bridge.prepared_draft_files is not None)
     (directory / "noteai-input.json").write_text(json.dumps({"report": context,
         "sources": [{k: value for k, value in source.items() if k != "payload"} for source in checked],
         "inspection_previews": inspections}, ensure_ascii=False))

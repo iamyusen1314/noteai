@@ -53,25 +53,49 @@ class ProgressTimingBoundaryTests(unittest.TestCase):
         result['calls'][0]['phase'] = 'mutated-copy'
         self.assertNotEqual(bridge.model_timings[0]['phase'], 'mutated-copy')
 
+    def test_render_diagnostic_rejects_extra_content_and_preserves_unknown_cleanup(self):
+        failure = {'phase': 'layout', 'mode': 'prepare', 'step': 'font_add',
+            'code': 23, 'ordinal': 2, 'file_count': 3, 'file_bytes': 450}
+        self.assertEqual(runtime._first_render_failure_diagnostic(failure), failure)
+        for poison in ({'detail': 'PRIVATE_SOURCE'}, {'code': 'UNTRUSTED_UPPERCASE'},
+                {'file_count': True}, {'ordinal': -1}, {'step': 'render'}):
+            self.assertIsNone(runtime._first_render_failure_diagnostic({**failure, **poison}))
+        job = str(uuid.uuid4())
+        pending = {'ordinal': 3, 'label': 'primary', 'body_sha256': 'a' * 64}
+        with tempfile.TemporaryDirectory() as root, mock.patch.dict(os.environ, {'NOTEAI_COVER_AGENT_STATE_ROOT': root}):
+            state = Path(root) / job / 'host-state'
+            state.mkdir(parents=True)
+            (state / 'host-checkpoint.json').write_text(json.dumps({'status': 'UNKNOWN',
+                'first_render_failure': failure, 'pending_request': pending, 'model_requests': 3}))
+            runtime.cleanup_workspace(job)
+            receipt = json.loads((Path(root) / 'receipts' / (job + '.json')).read_text())
+            self.assertEqual(receipt['first_render_failure'], failure)
+            self.assertEqual((receipt['status'], receipt['pending_request']), ('UNKNOWN', pending))
+
 
 class HostInlinePixelBoundaryTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which('node'), 'Node required for actual host helper')
     def test_actual_helpers_bind_images_and_only_guide_a_first_draft_with_current_pixels(self):
         script = r'''
-import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+import fs from 'node:fs';import path from 'node:path';import vm from 'node:vm';import assert from 'node:assert/strict';
 import {createHash}from'node:crypto';
 const s=fs.readFileSync(process.argv[1],'utf8');
 const helpers=s.slice(s.indexOf('function toolResultText('),s.indexOf('function recoverableOriginalViewRejection('));
 const sha=x=>createHash('sha256').update(x).digest('hex');
-const ctx=vm.createContext({Buffer,MAX_FILE:10485760,sha,error:c=>Object.assign(new Error(c),{code:c}),imageFile:()=>{throw Error('unexpected actual file read')}});
-vm.runInContext(helpers+'\nglobalThis.api={resultWithPixels,firstDraftRequest,toolResultText};',ctx);
+const base={'poster.json':'fixed geometry','brief.md':'frozen note','prompts.md':'original sources'};
+const ctx=vm.createContext({Buffer,path,MAX_FILE:10485760,sha,error:c=>Object.assign(new Error(c),{code:c}),
+ imageFile:()=>{throw Error('unexpected actual file read')},
+ fs:{lstat:async file=>({size:Buffer.byteLength(base[path.basename(file)]),isFile:()=>true}),
+  readFile:async file=>Buffer.from(base[path.basename(file)])}});
+vm.runInContext(helpers+'\nglobalThis.api={resultWithPixels,firstDraftRequest,verifiedDraftBase,toolResultText};',ctx);
 const image=Buffer.from('synthetic identity bytes'),digest=sha(image),file={uri:'data:image/png;base64,'+image.toString('base64'),mime:'image/png',name:'fixed.png'};
 const result={content:'{"ok":true}'};
 const out=await ctx.api.resultWithPixels(result,'/job',[{path:'fixed.png',sha256:digest}],async()=>file);
 assert.equal(out.content[0].text,result.content);assert.equal(out.content[1].uri,file.uri);assert.equal(typeof result.content,'string');
 await assert.rejects(ctx.api.resultWithPixels(result,'/job',[{path:'fixed.png',sha256:'a'.repeat(64)}],async()=>file),/INLINE_IMAGE_CHANGED/);
 assert.equal(ctx.api.toolResultText({type:'content',value:out.content}),result.content);
-const render={type:'function',function:{name:'cover_render',parameters:{properties:{prepare:{properties:{files:{minItems:1,maxItems:6}}}},required:['request']}}};
+const files={minItems:1,maxItems:6,items:{properties:{path:{enum:['index.html','poster.json','brief.md','design-plan.md','asset-plan.json','prompts.md']}}}};
+const render={type:'function',function:{name:'cover_render',description:'Render actual project',parameters:{properties:{prepare:{properties:{files}}},required:['request']}}};
 const body={model:'fixed-pro',messages:[{role:'user',content:[{type:'image_url',image_url:{url:file.uri}}]}],
  tools:[render,{type:'function',function:{name:'cover_view'}},{type:'function',function:{name:'cover_write'}}]};
 const before=JSON.stringify(body),guided=ctx.api.firstDraftRequest(body,{concept_sha256:digest});
@@ -79,6 +103,14 @@ assert.equal(JSON.stringify(body),before);
 assert.deepEqual(Array.from(guided.tools,x=>x.function.name),['cover_view','cover_render']);
 assert.equal(guided.tools[1].function.parameters.properties.prepare.properties.files.minItems,6);
 assert.ok(guided.tools[1].function.parameters.required.includes('prepare'));
+const hashes=Object.fromEntries(Object.entries(base).map(([name,body])=>[name,sha(body)]));
+assert.equal(await ctx.api.verifiedDraftBase('/job',hashes),true);
+const lean=ctx.api.firstDraftRequest(body,{concept_sha256:digest},true).tools[1].function.parameters.properties.prepare.properties.files;
+assert.deepEqual(Array.from(lean.items.properties.path.enum),['index.html','design-plan.md','asset-plan.json']);
+assert.equal(lean.minItems,3);assert.equal(lean.maxItems,3);
+base['brief.md']='changed after initialization';
+assert.equal(await ctx.api.verifiedDraftBase('/job',hashes),false);
+assert.equal(ctx.api.firstDraftRequest(body,{concept_sha256:digest},false),body);
 assert.equal(ctx.api.firstDraftRequest(body,{concept_sha256:digest,first_draft_attempted:true}),body);
 assert.equal(ctx.api.firstDraftRequest(body,{concept_sha256:digest,first_draft_fallback:true}),body);
 assert.equal(ctx.api.firstDraftRequest({...body,messages:[]},{concept_sha256:digest}).tools,body.tools);
@@ -94,6 +126,7 @@ console.log(JSON.stringify({actual_host_helpers:true,current_pixels_required:tru
 class BatchedScriptedBridge(fixture.ScriptedBridge):
     fail_first_prepare = False
     reject_first_qc = False
+    fail_draft_base = False
 
     def response(self, text, calls=None):
         if getattr(self, '_rejecting_qc', False):
@@ -148,28 +181,42 @@ class BatchedScriptedBridge(fixture.ScriptedBridge):
                     raise AssertionError('Actual SDK first-draft menu is not focused: ' + str(sorted(names)))
                 schema = next(item['function']['parameters'] for item in prepared['tools']
                     if item['function']['name'] == 'cover_render')
-                if 'prepare' not in schema['required'] or schema['properties']['prepare']['properties']['files']['minItems'] != 6:
-                    raise AssertionError('Actual first-draft request lacks whole-packet contract')
+                files_schema = schema['properties']['prepare']['properties']['files']
+                if self.fail_draft_base:
+                    if (files_schema['minItems'], files_schema['maxItems']) != (6, 6):
+                        raise AssertionError('Failed optional preparation lost the original six-file guide')
+                elif ('prepare' not in schema['required'] or (files_schema['minItems'], files_schema['maxItems']) != (3, 3)
+                        or files_schema['items']['properties']['path']['enum'] != ['index.html', 'design-plan.md', 'asset-plan.json']):
+                    raise AssertionError('Actual first draft requests redundant source or fixed-format files')
             else:
                 if not {'cover_read', 'cover_write', 'cover_check'}.issubset(names):
                     raise AssertionError('Real first-draft rejection did not restore repair tools')
-                if fixture.returned_value(prepared, 'ok')['ok'] is not False:
+                if self.fail_first_prepare == 'structured':
+                    failed = fixture.returned_value(prepared, 'prepare')['prepare']['failed_step']
+                    if failed != {'kind': 'render', 'index': 0, 'code': 'TEXT_OVER_PROTECTED_SUBJECT'}:
+                        raise AssertionError('Actual local protected subject rejection not preserved')
+                elif fixture.returned_value(prepared, 'ok')['ok'] is not False:
                     raise AssertionError('Expected actual first-draft rejection')
             source = self.sources[0]
             html = self.html(source['path']).replace('--font-title:"Noto Sans SC Variable",sans-serif}',
                 '--font-title:"Noto Sans SC Variable",sans-serif;}')
             files = [{'path': 'index.html', 'text': html},
-                {'path': 'poster.json', 'text': json.dumps({'canvas': {'width': 1776, 'height': 2368}, 'scale': 1, 'dpi': None})},
-                {'path': 'brief.md', 'text': 'Synthetic exact source and title.'},
                 {'path': 'design-plan.md', 'text': 'Written only after actual inline concept pixels.'},
-                {'path': 'asset-plan.json', 'text': json.dumps({'source': source['path']})},
-                {'path': 'prompts.md', 'text': 'Synthetic concept and truthful original-photo shipping.'}]
+                {'path': 'asset-plan.json', 'text': json.dumps({'source': source['path']})}]
+            if self.fail_draft_base:
+                files.extend([{'path': 'poster.json', 'text': json.dumps({'canvas': {'width': 1776, 'height': 2368},
+                    'scale': 1, 'dpi': None})}, {'path': 'brief.md', 'text': 'Actual synthetic saved-note input.'},
+                    {'path': 'prompts.md', 'text': 'Only original photos used.'}])
             request = {'project_dir': '.', 'sources': [{'path': source['path']}],
                 'text_layers': [{'id': 'title', 'allowed_rect': {'x': 90, 'y': 100, 'width': 1600, 'height': 350}}],
                 'protected_regions': [{'x': 500, 'y': 800, 'width': 700, 'height': 800}]}
             self.render_request = request
-            if self.fail_first_prepare and turn == 2:
-                files[1]['path'] = 'not-an-approved-file.json'
+            if turn == 2:
+                self.first_draft_bytes = sum(len(item['text'].encode('utf-8')) for item in files)
+                if self.fail_first_prepare == 'exception':
+                    files[1]['path'] = 'not-an-approved-file.json'
+                elif self.fail_first_prepare == 'structured':
+                    request = {**request, 'protected_regions': [{'x': 90, 'y': 100, 'width': 1600, 'height': 350}]}
             calls = [('cover_render', {'request': request,
                 'prepare': {'files': files, 'fonts': [{'font_id': 'cjk-sans', 'css_var': '--font-title'}]}})]
         elif turn == (4 if self.fail_first_prepare else 3):
@@ -196,7 +243,7 @@ class InlineConvergenceSDKTests(unittest.TestCase):
         if not os.environ.get('NOTEAI_COVER_HOST_NODE_MODULES') or not shutil.which('node'):
             raise unittest.SkipTest('Explicit approved existing SDK and Node required')
 
-    def run_flow(self, fail_first_prepare, reject_first_qc=False):
+    def run_flow(self, fail_first_prepare, reject_first_qc=False, fail_draft_base=False):
         original = fixture.synthetic_png((2400, 1800), '#5A7F75')
         concept = fixture.synthetic_png((1776, 2368), '#A1A8B1')
         source = {'media_ref': str(uuid.uuid4()), 'payload': original, 'sha256': hashlib.sha256(original).hexdigest()}
@@ -208,11 +255,17 @@ class InlineConvergenceSDKTests(unittest.TestCase):
             kwargs['before_call']('image', kwargs['call_id'], {})
             kwargs['on_call'](record)
             return concept, record
+        def partial_base(directory, context, sources):
+            (directory / 'poster.json').write_text('{"unfinished":true}')
+            raise OSError('PRIVATE_FIXTURE_PATH')
+        draft_base = partial_base if fail_draft_base else runtime._prepare_draft_base
         with tempfile.TemporaryDirectory(prefix='cover-inline-sdk-') as root:
             BatchedScriptedBridge.instances = []
             with mock.patch.dict(os.environ, {'NOTEAI_COVER_AGENT_STATE_ROOT': root}), \
                     mock.patch.object(BatchedScriptedBridge, 'fail_first_prepare', fail_first_prepare), \
                     mock.patch.object(BatchedScriptedBridge, 'reject_first_qc', reject_first_qc), \
+                    mock.patch.object(BatchedScriptedBridge, 'fail_draft_base', fail_draft_base), \
+                    mock.patch.object(runtime, '_prepare_draft_base', side_effect=draft_base), \
                     mock.patch.object(runtime.cover_seedream, 'generate_background', side_effect=fake_image) as image:
                 result = runtime.run_cover(job_id=str(uuid.uuid4()), user_id='offline-owner',
                     report={'title': '原照独立图层中文排字测试', 'body': 'Synthetic fixture, no merchant.', 'title_variants': []},
@@ -227,6 +280,41 @@ class InlineConvergenceSDKTests(unittest.TestCase):
             self.assertEqual(result.layout['source_hashes'], {source['media_ref']: source['sha256']})
             self.assertEqual(result.layout['qc_status'], 'INITIAL_VISUAL_QC_PASSED')
             checkpoint = json.loads((bridge.directory / 'host-state/host-checkpoint.json').read_text())
+            if fail_first_prepare:
+                expected = {'phase': 'layout', 'mode': 'prepare',
+                    'step': 'render' if fail_first_prepare == 'structured' else 'prepare',
+                    'code': 'TEXT_OVER_PROTECTED_SUBJECT' if fail_first_prepare == 'structured' else 'RENDER_PREPARE_INVALID',
+                    'ordinal': 2, 'file_count': 3, 'file_bytes': bridge.first_draft_bytes}
+                self.assertEqual(checkpoint['first_render_failure'], expected)
+                with mock.patch.dict(os.environ, {'NOTEAI_COVER_AGENT_STATE_ROOT': root}):
+                    runtime.cleanup_workspace(bridge.job_id)
+                receipt = json.loads((Path(root) / 'receipts' / (bridge.job_id + '.json')).read_text())
+                self.assertEqual(receipt['first_render_failure'], expected)
+            else:
+                self.assertNotIn('first_render_failure', checkpoint)
+            if fail_draft_base:
+                self.assertIsNone(bridge.prepared_draft_files)
+                self.assertEqual(json.loads((bridge.directory / 'poster.json').read_text()),
+                    {'canvas': {'width': 1776, 'height': 2368}, 'scale': 1, 'dpi': None})
+            if not fail_first_prepare and not reject_first_qc and not fail_draft_base:
+                restored = fixture.artifacts.restore(result.artifact['editable_bundle'], Path(root) / 'restored')
+                self.assertEqual(json.loads((restored / 'poster.json').read_text()),
+                    {'canvas': {'width': 1776, 'height': 2368}, 'scale': 1, 'dpi': None})
+                self.assertEqual((restored / 'brief.md').read_text(), '# 已冻结的报告内容与原照\n\n## 标题\n'
+                    '原照独立图层中文排字测试\n\n## 正文\nSynthetic fixture, no merchant.\n\n## 可用原照路径\nassets/source-1.png')
+                self.assertIn('无成品生图指令', (restored / 'prompts.md').read_text())
+                self.assertIn('reference/composition-prompt.md', (restored / 'prompts.md').read_text())
+                self.assertEqual((restored / 'reference/composition-prompt.md').read_text(),
+                    'Offline exact-source synthetic composition concept.')
+                edited = fixture.artifacts.cli('edit', {'schema_version': fixture.artifacts.SCHEMA,
+                    'output_root': str(Path(root) / 'free-edit'), 'parent_revision_dir': str(restored),
+                    'expected_parent_manifest_sha256': result.layout['manifest_sha256'],
+                    'initial_qc_ref': result.layout['initial_qc_ref'],
+                    'edits': [{'layer_id': 'title', 'text': '原照独立\n图层中文排字测试', 'dx': 12, 'dy': 8}]})
+                updated, _, layout = fixture.artifacts.capture(edited, expected_sources=result.layout['input_source_hashes'])
+                self.assertNotEqual(updated, result.final_bytes)
+                self.assertEqual((restored / 'out/poster.png').read_bytes(), result.final_bytes)
+                self.assertEqual(layout['qc_status'], 'USER_ADJUSTED_NOT_VISUALLY_REVIEWED')
             self.assertEqual(len(checkpoint['model_timings']), bridge.design_turn)
             self.assertTrue(all(set(item) == {'ordinal', 'kind', 'phase', 'elapsed_ms', 'state', 'http_status'}
                 for item in checkpoint['model_timings']))
@@ -242,14 +330,24 @@ class InlineConvergenceSDKTests(unittest.TestCase):
                 'synthetic_total_Pro_calls': len(bridge.requests), 'original_legacy_design_calls': 7,
                 'real_model_calls': 0, 'image_calls': 1, 'image_calls_are_synthetic': True,
                 'actual_pixels_received_without_cover_view': True, 'real_renderer_and_independent_QC': True,
-                'rejected_prepare_recovered': fail_first_prepare,
+                'prepared_base_kept': not fail_draft_base, 'model_authored_first_draft_files': 6 if fail_draft_base else 3,
+                'rejected_prepare_recovered': fail_first_prepare or None,
                 'independent_QC_local_repair_preserved': reject_first_qc}, sort_keys=True))
 
     def test_actual_sdk_inline_pixels_and_complete_first_draft_reduce_decision_rounds(self):
         self.run_flow(False)
 
     def test_actual_prepare_rejection_restores_tools_and_still_reaches_real_qc(self):
-        self.run_flow(True)
+        self.run_flow('exception')
+
+    def test_structured_render_rejection_keeps_code_after_repair_and_cleanup(self):
+        self.run_flow('structured')
+
+    def test_optional_partial_base_failure_uses_the_legacy_packet_without_new_model_calls(self):
+        with self.assertLogs(level='WARNING') as captured:
+            self.run_flow(False, fail_draft_base=True)
+        self.assertIn('cover_draft_base_preparation_unavailable', '\n'.join(captured.output))
+        self.assertNotIn('PRIVATE_FIXTURE_PATH', '\n'.join(captured.output))
 
     def test_independent_qc_rejection_retains_one_actual_local_render_and_recheck(self):
         self.run_flow(False, reject_first_qc=True)

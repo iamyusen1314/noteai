@@ -148,9 +148,22 @@ async function resultWithPixels(result, root, receipts, readImage = imageFile) {
   // actual prepared model request before any final/thumbnail inspection passes.
   return { ...result, content: [{ type: 'text', text: result.content }, ...files] };
 }
-function firstDraftRequest(body, state) {
+async function verifiedDraftBase(root, hashes) {
+  const names = ['poster.json', 'brief.md', 'prompts.md'];
+  if (!hashes || Object.keys(hashes).length !== names.length
+      || names.some((name) => !/^[a-f0-9]{64}$/.test(hashes[name]))) return false;
+  try {
+    for (const name of names) {
+      const file = path.join(root, name);
+      const info = await fs.lstat(file);
+      if (!info.isFile() || info.size > 256 * 1024 || sha(await fs.readFile(file)) !== hashes[name]) return false;
+    }
+    return true;
+  } catch { return false; } // The existing full tool menu can repair missing or changed files.
+}
+function firstDraftRequest(body, state, preparedBase = null) {
   if (!state?.concept_sha256 || state.first_draft_attempted || state.first_draft_fallback
-      || state.artifact || !Array.isArray(body.tools)
+      || state.artifact || preparedBase === false || !Array.isArray(body.tools)
       || (body.tool_choice !== undefined && body.tool_choice !== 'auto')) return body;
   const hasConcept = (body.messages || []).some((message) => Array.isArray(message.content)
     && message.content.some((part) => part.type === 'image_url'
@@ -161,8 +174,17 @@ function firstDraftRequest(body, state) {
   const guided = JSON.parse(JSON.stringify(render));
   const parameters = guided.function.parameters;
   parameters.required = [...new Set([...(parameters.required || []), 'prepare'])];
-  parameters.properties.prepare.properties.files.minItems = 6;
-  parameters.properties.prepare.properties.files.maxItems = 6;
+  const files = parameters.properties.prepare.properties.files;
+  if (preparedBase) {
+    if (!files.items?.properties?.path) return body;
+    files.minItems = 3;
+    files.maxItems = 3;
+    files.items.properties.path.enum = ['index.html', 'design-plan.md', 'asset-plan.json'];
+    guided.function.description += ' The fixed poster.json, frozen brief.md and source provenance prompts.md are already prepared. Include the real HTML and concise design/asset decisions; keep the three prepared files.';
+  } else {
+    files.minItems = 6;
+    files.maxItems = 6;
+  }
   // Preserve original-photo detail inspection. This only guides the first
   // complete draft; any actual local rejection restores all existing tools.
   return { ...body, tools: body.tools.filter((item) => item.function?.name === 'cover_view').concat(guided) };
@@ -530,6 +552,29 @@ const RENDER_REJECTION_CODES = new Set([
   'TEXT_OVER_PROTECTED_SUBJECT', 'UNAUTHORIZED_SHIPPING_IMAGE', 'UPSTREAM_EDITABLE_CONTRACT_FAILED',
   'UPSTREAM_FONTS_FAILED', 'UPSTREAM_POSTER_CONTRACT_FAILED', 'USAGE',
   'VISIBLE_TEXT_NOT_REGISTERED']);
+const RENDER_ATTEMPT_CODES = new Set([...RENDER_REJECTION_CODES,
+  'RENDER_PREPARE_INVALID', 'RENDER_PREPARE_TOO_LARGE', 'RENDER_NOT_COMPLETED',
+  'RENDER_NOT_APPROVED', 'RENDER_RESPONSE_INVALID', 'RENDER_SOURCE_BINDING_INVALID',
+  'RENDER_SOURCE_REPAIR_INVALID', 'COVER_AGENT_RENDER_SOURCE_INVALID',
+  'RENDERER_BEGIN_NOT_ACKNOWLEDGED', 'RENDERER_END_NOT_ACKNOWLEDGED',
+  'FONT_ROLE_VARIABLE_INVALID', 'FONT_ROLE_DECLARATION_MUST_BE_UNIQUE', 'FONT_RESPONSE_INVALID',
+  'INSTALLED_FONT_FACES_REQUIRED', 'INSTALLED_FONT_FAMILY_REQUIRED', 'INSTALLED_FONT_VARIABLE_REQUIRED',
+  'MANAGED_FONT_FAMILY_CONFLICT', 'MANAGED_FONT_STYLE_REQUIRED', 'MANAGED_FONT_VARIABLE_CONFLICT',
+  'EXTERNAL_RESOURCE_FORBIDDEN', 'RESOURCE_MUST_BE_QUOTED', 'PATH_OUTSIDE_JOB',
+  'WRITE_FILE_FORBIDDEN', 'SYMLINK_FORBIDDEN', 'IMMUTABLE_OR_STATE_FILE',
+  'LOCAL_TOOL_DEADLINE', 'LOCAL_TOOL_INTERRUPTED', 'LOCAL_TOOL_TIMEOUT', 'LOCAL_TOOL_FAILED',
+  'BRIDGE_TIMEOUT_UNKNOWN', 'BRIDGE_DISCONNECTED_UNKNOWN', 'SUPPLIER_RESULT_UNKNOWN',
+  'ENOENT', 'EACCES', 'EEXIST', 'ENOSPC', 'EIO', 'EMFILE', 'ENFILE', 'EROFS', 'EDQUOT',
+  'ENOTDIR', 'ENOTEMPTY', 'ETIMEDOUT', 'OTHER_LOCAL_RENDER_FAILURE']);
+function firstRenderFailure(args, phase, step, code, ordinal) {
+  const files = Array.isArray(args?.prepare?.files) ? args.prepare.files : [];
+  const bytes = files.reduce((sum, file) => sum + (typeof file?.text === 'string' ? Buffer.byteLength(file.text) : 0), 0);
+  if (!RENDER_ATTEMPT_CODES.has(code)
+      && !(step === 'font_add' && Number.isInteger(code) && code >= 1 && code <= 255))
+    code = 'OTHER_LOCAL_RENDER_FAILURE';
+  return { phase, mode: args?.prepare === undefined ? 'render' : 'prepare', step, code, ordinal,
+    file_count: Math.min(files.length, 1000000), file_bytes: Math.min(bytes, MAX_LINE) };
+}
 function renderRejection(result) {
   if (result?.ok !== false) return null;
   const layer = (value) => typeof value === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(value);
@@ -692,7 +737,10 @@ try {
       if (job.mode === 'inspect') throw error('INSPECT_FORBIDS_MODEL_CALL');
       if (checkpoint.status === 'UNKNOWN' || checkpoint.pending_tool) throw error('PREVIOUS_TOOL_UNKNOWN_NO_CONTINUATION');
       if (Date.now() >= job.deadline_epoch_ms || (job.max_model_requests != null && requests >= job.max_model_requests)) throw error('MODEL_REQUEST_LIMIT');
-      body = firstDraftRequest(body, checkpoint);
+      const preparedBase = job.prepared_draft_files !== undefined && checkpoint.concept_sha256
+        && !checkpoint.first_draft_attempted && !checkpoint.first_draft_fallback && !checkpoint.artifact
+        ? await verifiedDraftBase(job.work_dir, job.prepared_draft_files) : null;
+      body = firstDraftRequest(body, checkpoint, preparedBase);
       body.stream = false; delete body.stream_options;
       if (body.model !== job.model_id) throw error('MODEL_ID_NOT_LOCKED');
       const label = requestKind;
@@ -893,6 +941,12 @@ try {
     localToolTail = new Promise((resolve) => { release = resolve; });
     await previous;
     let outcome = 'failed';
+    const observeRenderFailure = (step, code) => {
+      try {
+        if (!checkpoint.first_render_failure) checkpoint.first_render_failure =
+          firstRenderFailure(args, job.mode === 'revise' ? 'qc' : 'layout', step, code, checkpoint.model_requests);
+      } catch { /* Optional evidence cannot replace the actual tool result. */ }
+    };
     const remember = async (value) => {
       try {
         checkpoint.local_tool_activity = localToolActivity(checkpoint.local_tool_activity, name, value, performance.now() - hostStarted);
@@ -923,6 +977,9 @@ try {
           markRenderChanged();
         }
         if (name === 'cover_render') {
+          const failedStep = value?.prepare?.failed_step;
+          if (failedStep) observeRenderFailure(failedStep.kind, failedStep.code);
+          else if (value?.ok === false || value?.allowed === false) observeRenderFailure('render', value.code);
           if (args.prepare !== undefined) value = value?.render;
           if (value?.ok === true) {
             geometryRepair = null;
@@ -971,7 +1028,10 @@ try {
       return result;
     } catch (e) {
       checkpoint.first_draft_fallback = true;
-      if (name === 'cover_render') geometryRepair = null;
+      if (name === 'cover_render') {
+        geometryRepair = null;
+        observeRenderFailure(args?.prepare === undefined ? 'render' : 'prepare', e.code || 'LOCAL_TOOL_FAILED');
+      }
       outcome = /UNKNOWN/.test(e.code || '') ? 'unknown' : 'failed';
       if (/UNKNOWN/.test(e.code || '')) { checkpoint.status = 'UNKNOWN'; await atomicJSON(checkpointPath, checkpoint); }
       return { content: JSON.stringify({ ok: false, code: e.code || 'LOCAL_TOOL_FAILED', detail: e.message }) };
