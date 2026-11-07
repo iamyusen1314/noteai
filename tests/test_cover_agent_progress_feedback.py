@@ -22,6 +22,7 @@ from tests import test_cover_verification_budget as budget_fixture
 
 runtime, provider = fixture.runtime, fixture.provider
 import billing
+import cover_jobs
 import cover_service
 import db
 
@@ -44,6 +45,48 @@ def progress_from_payload(payload):
 
 
 class ProgressFeedbackHelperTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("node"), "Node required for actual host notification")
+    def test_layout_notification_waits_for_a_concept_receipt_and_revision_stays_qc(self):
+        script = r"""
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const source = fs.readFileSync(process.argv[1], 'utf8');
+const phases = source.slice(source.indexOf('const PUBLIC_PHASES ='), source.indexOf('function toolResultText('));
+const notifier = source.slice(source.indexOf('  const notifyProgress ='), source.indexOf('  let geometryRepair ='));
+const events = [];
+const job = { mode: 'run' };
+const checkpoint = { status: 'RUNNING' };
+const ctx = vm.createContext({
+    job, checkpoint, checkpointPath: '/unused',
+    atomicJSON: async () => { throw new Error('optional observation unavailable'); },
+    send: (event) => events.push([event.phase, event.detail_code, event.revision]),
+});
+vm.runInContext(phases + notifier + '\nglobalThis.notify = notifyProgress;', ctx);
+(async () => {
+    await ctx.notify('design', 'planning');
+    await ctx.notify('layout', 'preparing_layout');
+    await ctx.notify('concept', 'generating_reference');
+    // A known tool rejection has no successful concept receipt.
+    checkpoint.concept_requested = true;
+    await ctx.notify('layout', 'rendering');
+    assert.deepEqual(events, [['design', 'planning', 0], ['concept', 'generating_reference', 0]]);
+    assert.equal(checkpoint.status, 'RUNNING');
+
+    checkpoint.concept_sha256 = 'a'.repeat(64);
+    await ctx.notify('layout', 'preparing_layout');
+    assert.deepEqual(events.at(-1), ['layout', 'preparing_layout', 0]);
+
+    delete checkpoint.concept_sha256;
+    job.mode = 'revise';
+    await ctx.notify('layout', 'rendering');
+    assert.deepEqual(events.at(-1), ['qc', 'rendering', 1]);
+})().catch((error) => { console.error(error); process.exitCode = 1; });
+"""
+        result = subprocess.run([os.environ.get("NOTEAI_COVER_NODE", "node"), "-e", script,
+            str(runtime.ROOT / "cover_agent_host/host.mjs")], capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     @unittest.skipUnless(shutil.which("node"), "Node required for actual host helper")
     def test_actual_helper_reports_clock_and_required_stage_without_private_content_or_fake_qc(self):
         script = r"""
@@ -125,6 +168,7 @@ class ProgressFeedbackSDKTests(unittest.TestCase):
         self.addCleanup(scope.tearDown)
         scope.configure("100000")
         observed, wire, concepts, stopped, checkpoints = [], [], [], [], []
+        public_progress = []
         errors = []
         actual_price = billing._pricing_snapshot
         html = '<!doctype html><html><head></head><body><p>PRIVATE_HTML_DO_NOT_PROJECT</p></body></html>'
@@ -162,6 +206,10 @@ class ProgressFeedbackSDKTests(unittest.TestCase):
                 self.assertEqual(feedback["dispatch_requires_remaining_ms"], 320000)
                 return super().model(payload, stage=stage)
 
+        def read_public_progress():
+            progress = cover_jobs.get_job(scope.owner, scope.claim["request_id"])["progress"]
+            public_progress.append((progress["phase"], progress["detail_code"]))
+
         def transport(request):
             payload = json.loads(request.content)
             turn = len(wire) + 1
@@ -169,13 +217,19 @@ class ProgressFeedbackSDKTests(unittest.TestCase):
             self.assertEqual(progress_from_payload(payload), observed[-1])
             if turn == 1:
                 self.assertEqual(observed[-1]["stage"], "concept")
-                return httpx.Response(200, json=response(turn, [("cover_seedream", {
-                    "prompt": "Synthetic nonshipping technical concept. Keep all merchant facts unchanged."})]))
+                read_public_progress()
+                return httpx.Response(200, json=response(turn, [
+                    ("cover_write", {"path": "brief.md", "text": "PRIVATE_EARLY_DRAFT"}),
+                    ("cover_seedream", {
+                        "prompt": "Synthetic nonshipping technical concept. Keep all merchant facts unchanged."})]))
             if turn == 2:
                 # The real concept pixels now accompany its successful tool
                 # receipt; the next decision can start layout immediately.
                 self.assertEqual(observed[-1]["stage"], "layout")
                 self.assertIn(concept_sha, runtime._images_in(payload))
+                read_public_progress()
+                early = fixture.returned_value(payload, "sha256", tool_call_id="progress_1_0")
+                self.assertEqual(early["sha256"], hashlib.sha256(b"PRIVATE_EARLY_DRAFT").hexdigest())
                 return httpx.Response(200, json=response(turn, [
                     ("cover_render", {"prepare": {"files": [
                         {"path": "index.html", "text": html},
@@ -200,6 +254,9 @@ class ProgressFeedbackSDKTests(unittest.TestCase):
             raise httpx.ReadTimeout("synthetic unknown; do not retry", request=request)
 
         def fake_concept(**kwargs):
+            draft = runtime.workspace_root() / scope.claim["request_id"] / "brief.md"
+            self.assertEqual(draft.read_text(), "PRIVATE_EARLY_DRAFT")
+            read_public_progress()
             concepts.append(kwargs["call_id"])
             return concept, {"call_id": kwargs["call_id"], "stage": "image", "status": "responded"}
 
@@ -242,6 +299,8 @@ class ProgressFeedbackSDKTests(unittest.TestCase):
         self.assertEqual(len(wire), 3)
         self.assertEqual(len(observed), 3)
         self.assertEqual(len(concepts), 1)
+        self.assertEqual(public_progress, [("design", "waiting_model"),
+            ("concept", "generating_reference"), ("layout", "waiting_model")])
         self.assertGreater(observed[0]["remaining_ms"], observed[1]["remaining_ms"])
         self.assertGreater(observed[1]["remaining_ms"], observed[2]["remaining_ms"])
         self.assertEqual(stopped, [True])
@@ -258,6 +317,8 @@ class ProgressFeedbackSDKTests(unittest.TestCase):
             "stages": [item["stage"] for item in observed], "physical_mock_calls": 3,
             "known_mock_200": 2, "unknown_once": 1, "concept_stub_calls": 1,
             "batched_write_receipts_preserved": True, "error_receipt_preserved": True,
+            "early_write_before_concept_preserved": True,
+            "public_phases": [phase for phase, _ in public_progress],
             "render_or_qc_claimed": False, "real_supplier_calls": 0,
             "real_merchant_quality_acceptance": False}, sort_keys=True))
 

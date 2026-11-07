@@ -839,7 +839,12 @@ try {
   const progressFacts = { local_revision: job.mode === 'revise', concept_pixels_returned: false,
     render_needs_refresh: job.mode === 'revise', final_pixels_returned: false };
   const notifyProgress = async (phase, detail) => {
-    const snapshot = progressSnapshot(phase, detail, job.mode === 'revise' ? 1 : 0);
+    const revision = job.mode === 'revise' ? 1 : 0;
+    // A draft write/check may run before the concept tool in the same reply.
+    // Publishing layout then would prevent the durable phase from showing concept.
+    if (phase === 'layout' && revision === 0 && (typeof checkpoint.concept_sha256 !== 'string'
+        || !/^[a-f0-9]{64}$/.test(checkpoint.concept_sha256))) return;
+    const snapshot = progressSnapshot(phase, detail, revision);
     if (!snapshot || JSON.stringify(snapshot) === JSON.stringify(checkpoint.execution_progress)) return;
     checkpoint.execution_progress = snapshot;
     // Optional observations never replace the dispatch/UNKNOWN checkpoint.
