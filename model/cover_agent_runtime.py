@@ -60,6 +60,35 @@ _VIEW_BATCH_ENCODED_LIMIT = 15 * 1024 * 1024
 _INSPECTION_MAX_EDGE = 1600
 _INSPECTION_MAX_BASE64_BYTES = 1024 * 1024
 _LOCAL_TOOL_NAMES = {"cover_read", "cover_write", "cover_view", "cover_seedream", "cover_render", "cover_check"}
+_PROGRESS_PHASES = {"source_check", "design", "concept", "layout", "qc", "saving"}
+_PROGRESS_DETAILS = {"inspecting_sources", "planning", "generating_reference", "inspecting_reference",
+    "preparing_layout", "rendering", "inspecting_render", "checking_quality", "adjusting", "rechecking", "storing", "waiting_model"}
+
+
+def _progress_snapshot(value):
+    if (type(value) is not dict or set(value) != {"phase", "detail_code", "revision"}
+            or type(value["phase"]) is not str or value["phase"] not in _PROGRESS_PHASES
+            or type(value["detail_code"]) is not str or value["detail_code"] not in _PROGRESS_DETAILS
+            or type(value["revision"]) is not int or value["revision"] not in {0, 1}):
+        return None
+    return dict(value)
+
+
+def _notify_progress(hooks, snapshot):
+    value = _progress_snapshot(snapshot)
+    callback = getattr(hooks, "on_progress", None)
+    if value is None or not callable(callback):
+        return False
+    try:
+        callback(value)
+        return True
+    except Exception:
+        # Progress is optional observation. Existing dispatch/lease/UNKNOWN
+        # checks remain authoritative and this never clears their failure.
+        logging.warning("cover_progress_observation_unavailable")
+        return False
+
+
 _CAPTURE_FAILURE_CODES = {"COVER_EDITABLE_MANIFEST_CHANGED", "COVER_EDITABLE_MANIFEST_INVALID",
     "COVER_EDITABLE_SOURCE_CHANGED", "COVER_EDITABLE_PATH_INVALID", "COVER_EDITABLE_FILE_CHANGED",
     "COVER_EDITABLE_BUNDLE_TOO_LARGE", "COVER_EDITABLE_FINAL_CHANGED", "COVER_EDITABLE_RENDER_CONTRACT_INVALID",
@@ -1089,6 +1118,9 @@ def _prompt(context, sources):
         "该反馈仅为尚未生图的本地校验，最多允许两次修正，不可忽略或宣称已看。"
         "先用cover_seedream生成最多一张完整封面概念（不能仅做抽象背景），"
         "prompt须约束与真实拍照一致；实际看概念后决定设计，不让概念图充当最终商家照片。"
+        "cover_seedream成功回执同时附实际概念像素；cover_render成功回执同时附实际成品与240px缩略图。"
+        "下一轮直接使用已实际收到的像素作综合决定，不要仅为申请查看已收到的图再开一轮cover_view。"
+        "若本轮像素因上下文预算缺失，或原照细节不足，仍用cover_view补看；路径或附图声明不代替实际像素送达校验。"
         "最终shipping照片只能引用assets中逐byte原照，保留主体和可追溯图层，禁止生成式扩景/改设施/菜品/人物/价格/服务。"
         "可按Skill裁切、修色、构图与排字，但修色必须有限且真实，主体不可被裁去或文字盖住。"
         "文字来自approved_titles（如有）否则title/title_variants的精确短摘，只能变化断行；"
@@ -1105,6 +1137,7 @@ def _prompt(context, sources):
         "原cover_write/cover_check仍用于必要局改，实际审图必须等真实渲染像素返回。"
         "执行收敛：实际看完概念后，只做一次综合设计决定，将完整HTML/poster.json和同阶段独立留存文件"
         "在同一轮工具调用中写好，不为每个说明文件另开一轮推理，也不反复改写已经确定的计划。"
+        "首稿请求会聚焦cover_view与整包cover_render.prepare；原照精查仍可进行，任何实际本地拒绝后完整局改工具恢复。"
         "通过上述prepare在一次本地流水线完成所选字体安装与原有检查，按真实错误局改，尽早取得第一张实际预览。"
         "然后实际看成品大图和缩略图，修正具体缺陷；不能用继续补写设计说明代替渲染。"
         "host每轮提供真实剩余时间和基于工具事实的进度提示；文件存在不代表有效、已看或已通过检查。"
@@ -1161,6 +1194,44 @@ class Bridge:
         self.render_source_repairs = 0
         self.thinking = ThinkingState(job_id)
         self._renderer_lease = None
+        self.progress_phase, self.progress_revision = "design", 0
+        self.model_kind = "primary"
+        self.model_timings, self.timing_count, self.timing_total_ms = [], 0, 0
+
+    def progress(self, snapshot):
+        value = _progress_snapshot(snapshot)
+        if value is None or value["revision"] != self.progress_revision:
+            return False
+        if self.progress_revision or self.progress_phase == "qc":
+            if value["phase"] != "saving":
+                value["phase"] = "qc"
+        self.progress_phase = value["phase"]
+        return _notify_progress(self.hooks, value)
+
+    def _timed_call(self, kind, callback):
+        started, state = time.monotonic(), "responded"
+        kind = kind if kind in {"primary", "compaction", "generate", "title", "qc", "image"} else "primary"
+        phase = self.progress_phase if self.progress_phase in _PROGRESS_PHASES else "design"
+        try:
+            return callback()
+        except BaseException as error:
+            state = "unconfirmed" if getattr(error, "outcome_unknown", False) else "failed"
+            raise
+        finally:
+            try:
+                elapsed = min(86400000, max(0, int((time.monotonic() - started) * 1000)))
+                self.timing_count += 1
+                self.timing_total_ms += elapsed
+                self.model_timings.append({"ordinal": self.timing_count, "kind": kind,
+                    "phase": phase, "elapsed_ms": elapsed, "state": state})
+                self.model_timings = self.model_timings[-128:]
+            except Exception:
+                logging.warning("cover_timing_observation_unavailable")
+
+    def execution_summary(self):
+        return {"schema_version": 1, "timing_boundary": "adapter_call_wall_time_including_network_not_pure_inference",
+            "adapter_attempts": self.timing_count, "dropped_attempts": max(0, self.timing_count - len(self.model_timings)),
+            "sum_call_ms": self.timing_total_ms, "calls": [dict(item) for item in self.model_timings]}
 
     def _renderer_event(self, event, *, deadline):
         kind = event.get("type")
@@ -1361,8 +1432,11 @@ class Bridge:
             with public_product.model_admission_sync(call_id, "doubao", model_id=provider.MODEL):
                 self._check_model_deadline("after_shared_permit", self.ordinal)
                 self.hooks.before_call(stage + ":" + str(self.ordinal), call_id, estimate)
-                body = provider.complete(prepared, call_id=call_id, transport=self.model_transport,
-                    deadline=self.request_deadline)
+                self.progress({"phase": "qc" if stage == "qc" else self.progress_phase,
+                    "detail_code": "waiting_model", "revision": self.progress_revision})
+                body = self._timed_call("qc" if stage == "qc" else self.model_kind,
+                    lambda: provider.complete(prepared, call_id=call_id, transport=self.model_transport,
+                        deadline=self.request_deadline))
         except provider.CoverAgentProviderError as error:
             if error.output_diagnostics is not None:
                 self._record_output_rejection(error.output_diagnostics)
@@ -1480,11 +1554,13 @@ class Bridge:
                     "view_batches": _original_view_batches(missing),
                     "message": "仅补看missing_originals：按view_batches分批，同一批在同一条回复中调用多个cover_view，批间等待下一轮实际图片；已收到的原照不用重复查看。全部实际看完后再请求封面概念，尚未调用生图。"}
             self.hooks.on_stage("image")
+            self.progress({"phase": "concept", "detail_code": "generating_reference", "revision": self.progress_revision})
             try:
-                image, record = cover_seedream.generate_background(source_images=[source["payload"] for source in self.sources],
-                    prompt=arguments["prompt"], call_id=cover_runtime.physical_call_id(self.job_id, "image"),
+                image, record = self._timed_call("image", lambda: cover_seedream.generate_background(
+                    source_images=[source["payload"] for source in self.sources], prompt=arguments["prompt"],
+                    call_id=cover_runtime.physical_call_id(self.job_id, "image"),
                     before_call=self.hooks.before_call, on_call=self.hooks.on_call, transport=self.image_transport,
-                    deadline=self.request_deadline)
+                    deadline=self.request_deadline))
             except cover_seedream.SeedreamError as error:
                 if error.response_diagnostics is not None:
                     self._record_seedream_rejection(error.response_diagnostics)
@@ -1497,6 +1573,7 @@ class Bridge:
             reference.write_bytes(image)
             (reference.parent / "composition-prompt.md").write_text(arguments["prompt"])
             self.hooks.on_stage("design")
+            self.progress({"phase": "concept", "detail_code": "inspecting_reference", "revision": self.progress_revision})
             return {"path": relative, "sha256": self.concept_hash,
                 "role": "design_concept_reference_only_not_shipping_photo"}
         if name == "cover_render":
@@ -1591,7 +1668,7 @@ class Bridge:
                     raise cover_runtime.CoverRuntimeError("COVER_AGENT_HOST_INTERRUPTED")
                 kind = event.get("type")
                 if self._renderer_lease is not None and kind not in {
-                        "renderer_end", "render_finished", "request_hook", "retry_veto"}:
+                        "renderer_end", "render_finished", "request_hook", "retry_veto", "progress"}:
                     raise cover_runtime.CoverRuntimeError("COVER_AGENT_HOST_PROTOCOL_INVALID")
                 if kind == "ready":
                     self.session_id = event["session_id"]
@@ -1603,6 +1680,7 @@ class Bridge:
                     if kind == "model_preflight":
                         send({"type": "model_preflight_response", "id": event["id"], **self.preflight(event["body"])})
                     else:
+                        self.model_kind = event.get("label") if event.get("label") in {"primary", "compaction", "generate", "title"} else "primary"
                         body, call_id = self.model(event["body"])
                         try:
                             send({"type": "model_response", "id": event["id"], "status": 200, "body": body})
@@ -1621,6 +1699,10 @@ class Bridge:
                 elif kind in {"renderer_begin", "renderer_end"}:
                     result = self._renderer_event(event, deadline=renderer_deadline)
                     send({"type": "renderer_response", "id": event["id"], "result": result})
+                elif kind == "progress":
+                    value = {key: value for key, value in event.items() if key != "type"}
+                    if not self.progress(value):
+                        logging.debug("cover_optional_progress_not_applied")
                 elif kind == "result":
                     if event.get("ok") is not True or not isinstance(event.get("artifact"), dict):
                         try:
@@ -1680,6 +1762,7 @@ def run_cover(*, job_id, user_id, report, sources, hooks, design_version=3,
     (directory / "assets").mkdir()
     if not 1 <= len(sources) <= 9:
         raise cover_runtime.CoverRuntimeError("COVER_RUNTIME_SOURCES_INVALID")
+    _notify_progress(hooks, {"phase": "source_check", "detail_code": "inspecting_sources", "revision": 0})
     checked, inspections = [], []
     for index, source in enumerate(sources):
         body = source["payload"]
@@ -1705,6 +1788,9 @@ def run_cover(*, job_id, user_id, report, sources, hooks, design_version=3,
     deadline = time.time() + 25 * 60
     rejected_hash = None
     for revision in range(2):
+        bridge.progress_revision = revision
+        bridge.progress({"phase": "qc" if revision else "design",
+            "detail_code": "adjusting" if revision else "planning", "revision": revision})
         result = bridge.run(prompt, deadline=deadline)
         revision_dir = Path(result["artifact"]["revision_dir"]).resolve()
         if not revision_dir.is_relative_to(directory):
@@ -1729,6 +1815,7 @@ def run_cover(*, job_id, user_id, report, sources, hooks, design_version=3,
                for layer in layout["text_layers"]):
             raise cover_runtime.CoverRuntimeError("COVER_DESIGN_TEXT_NOT_FROM_TITLE")
         hooks.on_stage("qc")
+        bridge.progress({"phase": "qc", "detail_code": "rechecking" if revision else "checking_quality", "revision": revision})
         selected = [source for source in checked if source["media_ref"] in layout["source_hashes"]]
         qc_prompt = cover_runtime._qc_prompt(context, layout, source_count=len(selected))
         payload = {"model": provider.MODEL, "messages": [{"role": "user", "content": [
@@ -1759,6 +1846,11 @@ def run_cover(*, job_id, user_id, report, sources, hooks, design_version=3,
         design = {"schema_version": 3, "engine": artifacts.ENGINE, "session_id": bridge.session_id,
             "concept_sha256": bridge.concept_hash, "source_hashes": layout["source_hashes"],
             "manifest_sha256": layout["manifest_sha256"], "local_revisions": revision}
+        try:
+            design["execution_summary"] = bridge.execution_summary()
+        except Exception:
+            logging.warning("cover_timing_summary_unavailable")
+        bridge.progress({"phase": "saving", "detail_code": "storing", "revision": revision})
         return cover_runtime.CoverResult(final, final, layout, design, qc,
             ["design", "image", "qc", "saving"], bridge.costs,
             {"editable_bundle": bundle, "base_kind": "final_preview_not_clean_background"})

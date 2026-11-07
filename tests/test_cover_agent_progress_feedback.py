@@ -172,24 +172,31 @@ class ProgressFeedbackSDKTests(unittest.TestCase):
                 return httpx.Response(200, json=response(turn, [("cover_seedream", {
                     "prompt": "Synthetic nonshipping technical concept. Keep all merchant facts unchanged."})]))
             if turn == 2:
-                self.assertEqual(observed[-1]["stage"], "inspect_concept")
+                # The real concept pixels now accompany its successful tool
+                # receipt; the next decision can start layout immediately.
+                self.assertEqual(observed[-1]["stage"], "layout")
+                self.assertIn(concept_sha, runtime._images_in(payload))
                 return httpx.Response(200, json=response(turn, [
-                    ("cover_view", {"path": "reference/composition-reference.png"}),
-                    ("cover_write", {"path": "index.html", "text": html}),
-                    ("cover_write", {"path": "poster.json", "text": poster}),
-                    ("cover_write", {"path": "brief.md", "text": "PRIVATE_PLAN_DO_NOT_PROJECT"}),
-                    ("cover_read", {"path": "missing-file.md"})]))
+                    ("cover_render", {"prepare": {"files": [
+                        {"path": "index.html", "text": html},
+                        {"path": "poster.json", "text": poster},
+                        {"path": "brief.md", "text": "PRIVATE_PLAN_DO_NOT_PROJECT"},
+                        {"path": "design-plan.md", "text": "Synthetic staged design."},
+                        {"path": "asset-plan.json", "text": '{}'},
+                        {"path": "prompts.md", "text": "Synthetic technical prompt."}], "fonts": []},
+                        "request": {"project_dir": ".", "sources": [{"path": "original-0.png"}],
+                            "text_layers": [{"id": "title", "allowed_rect": {
+                                "x": 100, "y": 100, "width": 1000, "height": 400}}]}})]))
             self.assertEqual(turn, 3, "UNKNOWN must not authorize an upstream retry")
             self.assertEqual(observed[-1]["stage"], "first_render")
             self.assertIn(concept_sha, runtime._images_in(payload))
-            written = fixture.returned_value(payload, "sha256", tool_call_id="progress_2_2")
+            returned = fixture.returned_value(payload, "prepare", tool_call_id="progress_2_0")
+            written = next(value for value in returned["prepare"]["files"] if value["path"] == "poster.json")
             self.assertEqual(set(written), {"path", "bytes", "sha256"})
             self.assertEqual(written["path"], "poster.json")
             self.assertEqual(written["sha256"], hashlib.sha256(poster.encode()).hexdigest())
-            error = fixture.returned_value(payload, "ok", tool_call_id="progress_2_4")
-            self.assertEqual(set(error), {"ok", "code", "detail"})
-            self.assertIs(error["ok"], False)
-            self.assertEqual(error["code"], "ENOENT")
+            self.assertEqual(returned["prepare"]["failed_step"]["kind"], "render")
+            self.assertIs(returned["render"]["ok"], False)
             raise httpx.ReadTimeout("synthetic unknown; do not retry", request=request)
 
         def fake_concept(**kwargs):
@@ -246,7 +253,7 @@ class ProgressFeedbackSDKTests(unittest.TestCase):
             [("responded", 200), ("responded", 200), ("unknown", None)])
         self.assertEqual(db.fetchone("SELECT COUNT(*) FROM model_usage_records")[0], 2)
         self.assertEqual(checkpoints[0]["model_requests"], 3)
-        self.assertEqual(checkpoints[0]["local_tool_activity"]["attempts"]["cover_render"], 0)
+        self.assertEqual(checkpoints[0]["local_tool_activity"]["attempts"]["cover_render"], 1)
         print("COVER_PROGRESS_SDK_PROOF=" + json.dumps({"actual_sdk": True,
             "stages": [item["stage"] for item in observed], "physical_mock_calls": 3,
             "known_mock_200": 2, "unknown_once": 1, "concept_stub_calls": 1,

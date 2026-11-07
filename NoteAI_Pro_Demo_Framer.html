@@ -2800,6 +2800,18 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 .cover-panel textarea { resize:vertical; min-height:70px; }
 .cover-panel-note { font-size:12px; color:var(--text-muted); line-height:1.7; margin:0; overflow-wrap:anywhere; }
 .cover-panel-status { padding:12px; background:var(--surf-2); border:1px solid var(--border); border-radius:10px; font-size:13px; line-height:1.7; white-space:pre-line; overflow-wrap:anywhere; }
+.cover-progress { padding:14px; background:var(--surf-2); border:1px solid var(--border); border-radius:10px; min-width:0; }
+.cover-progress-heading { display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px 12px; font-size:13px; line-height:1.6; }
+.cover-progress-heading>span { color:var(--text-2); font-size:12px; }
+.cover-progress-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; margin:12px 0; padding:0; list-style:none; }
+.cover-progress-steps li { display:flex; gap:6px; align-items:flex-start; min-width:0; color:var(--text-2); font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+.cover-progress-steps b { display:grid; place-items:center; flex-shrink:0; width:20px; height:20px; border:1px solid var(--border-hover); border-radius:50%; font-size:11px; }
+.cover-progress-steps [data-state="current"] { color:var(--text); font-weight:600; }
+.cover-progress-steps [data-state="current"] b { color:var(--accent); border-color:var(--accent); }
+.cover-progress-steps [data-state="done"] b { color:var(--accent); }
+.cover-progress-times { display:flex; flex-wrap:wrap; gap:4px 16px; margin-top:8px; font-size:12px; line-height:1.7; color:var(--text-2); font-variant-numeric:tabular-nums; }
+.cover-progress .cover-panel-note { color:var(--text-2); }
+.cover-progress [data-cover="progress-long"] { margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
 .cover-panel-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .cover-panel button.cover-primary { background:var(--accent); color:#fff; border-color:var(--accent); }
 .cover-source-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; margin:10px 0; }
@@ -2809,7 +2821,7 @@ h1 svg,h2 svg,h3 svg{vertical-align:-3px;margin-right:4px}
 .cover-final { display:grid; grid-template-columns:minmax(150px,260px) 1fr; align-items:start; gap:16px; }
 .cover-final img { display:block; width:100%; max-height:420px; object-fit:contain; background:#171717; border-radius:10px; }
 .cover-final-controls { display:grid; gap:12px; min-width:0; }
-@media(max-width:540px) { .cover-panel-head,.cover-panel-body { padding:16px; } .cover-final { grid-template-columns:1fr; } .cover-final img { max-height:360px; } .cover-panel-actions button { flex:1; } }
+@media(max-width:540px) { .cover-panel-head,.cover-panel-body { padding:16px; } .cover-final { grid-template-columns:1fr; } .cover-final img { max-height:360px; } .cover-panel-actions button { flex:1; } .cover-progress-steps { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 </style>
 </head>
 <body>
@@ -8409,6 +8421,107 @@ function coverTaskStage(job) {
     outcome_unknown:'供应商结果待核查，不会自动重新生成',unknown:'供应商结果待核查，不会自动重新生成'};
   return stages[job?.status === 'outcome_unknown' ? job.status : job?.stage] || stages[job?.status] || '封面任务正在处理';
 }
+const COVER_PROGRESS_PHASES = ['source_check','design','concept','layout','qc','saving'];
+const COVER_PROGRESS_LABELS = ['素材核对','设计方向','构图参考','原照排版','质量检查与必要调整','保存交付'];
+function coverClockValue(value) {
+  if (typeof value !== 'string' || !value) return null;
+  const clock = Date.parse(value);
+  return Number.isFinite(clock) ? clock : null;
+}
+function coverDuration(milliseconds) {
+  if (!Number.isFinite(milliseconds)) return '暂未记录';
+  const seconds = Math.max(0,Math.floor(milliseconds / 1000));
+  return seconds < 60 ? seconds + '秒' : Math.floor(seconds / 60) + '分' + String(seconds % 60).padStart(2,'0') + '秒';
+}
+function coverProgressState(ctx, clientNow = Date.now()) {
+  const job = ctx.pending && ctx.active?.request_id !== ctx.pending.request_id ? null : ctx.active, raw = job?.progress;
+  const progress = raw?.schema_version === 1 && (raw.phase === 'queued' || COVER_PROGRESS_PHASES.includes(raw.phase)) ? raw : null;
+  const serverNow = ctx.progressClock && job && ctx.progressClock.jobId === job.job_id
+    ? ctx.progressClock.serverAt + Math.max(0,clientNow - ctx.progressClock.clientAt) : clientNow;
+  const unknown = ['outcome_unknown','unknown'].includes(job?.status);
+  const terminal = !!job && (unknown || ['completed','failed','cancelled','expired'].includes(job.status));
+  const queued = job?.status === 'queued';
+  const step = queued ? 0 : progress ? COVER_PROGRESS_PHASES.indexOf(progress.phase) + 1 : 0;
+  const details = {waiting_slot:'正在等待封面制作名额，尚未开始制作',inspecting_sources:'正在核对原图与笔记素材',planning:'正在确定设计方向',
+    generating_reference:'正在生成构图参考',inspecting_reference:'正在检查构图参考',preparing_layout:'正在安排原照、文字与留白',
+    rendering:'正在渲染原照排版',inspecting_render:'正在检查实际排版与缩略图',checking_quality:'正在检查文字、主体和事实',
+    adjusting:'正在按质检意见作局部调整',rechecking:'正在复核调整后的封面',storing:'正在保存成品并确认交付'};
+  let detail = progress?.detail_code === 'waiting_model' ? (COVER_PROGRESS_LABELS[step - 1] || '当前步骤') + '：正在等待模型返回'
+    : details[progress?.detail_code] || (job ? coverTaskStage(job) : '受理结果待核查，请查询原任务；不会自动重新提交。');
+  if (queued) detail = details.waiting_slot;
+  if (unknown) detail = '供应商结果待核查。保留原任务，不会自动重新生成或重发付费请求。';
+  else if (terminal) detail = coverTaskStage(job);
+  const start = coverClockValue(queued ? job?.created_at : progress?.execution_started_at);
+  const phaseStart = coverClockValue(progress?.phase_started_at);
+  // Terminal timing uses a server-recorded end only; a later page read is not execution time.
+  const end = terminal ? coverClockValue(job.status === 'completed' ? job.completed_at : unknown ? job.unknown_at : job.status === 'failed' ? job.updated_at : null) : serverNow;
+  const elapsed = start !== null && end !== null ? Math.max(0,end - start) : null;
+  const phaseElapsed = !queued && phaseStart !== null && end !== null ? Math.max(0,end - phaseStart) : null;
+  const seen = coverClockValue(progress?.last_worker_seen_at);
+  const workerDelayed = !queued && !terminal && seen !== null && serverNow - seen >= 90000;
+  const worker = queued ? '后台确认：尚未开始制作' : seen === null ? '后台确认：尚未记录'
+    : terminal ? '后台最后确认：' + _fmtLocalTime(progress.last_worker_seen_at)
+    : workerDelayed ? '后台确认已延迟（上次确认在' + coverDuration(serverNow - seen) + '前），正在核对原任务；请勿重复提交。'
+    : '后台最近确认：' + coverDuration(serverNow - seen) + '前';
+  const count = queued ? '排队中 · 尚未开始六步制作' : unknown ? '结果待核查'
+    : job?.status === 'completed' && progress ? '6步已完成'
+    : step ? (terminal ? '停止前确认到第' : '第') + step + '/6步'
+    : job ? '分步进度暂未记录' : '受理待核查';
+  return {job,progress,queued,unknown,terminal,step,detail,count,elapsed,phaseElapsed,worker,workerDelayed,
+    long:!terminal && elapsed !== null && elapsed >= 300000};
+}
+function coverRenderProgress(ctx) {
+  if (!ctx.current()) return;
+  const el = name => ctx.dialog.querySelector('[data-cover="' + name + '"]');
+  const state = coverProgressState(ctx);
+  el('progress').hidden = !state.job && !ctx.pending;
+  const unconfirmed = ctx.queryInterrupted || state.workerDelayed;
+  el('progress-count').textContent = (unconfirmed ? '上次确认：' : '') + state.count;
+  if (el('progress-detail').textContent !== state.detail) el('progress-detail').textContent = state.detail;
+  el('progress-steps').hidden = !state.progress;
+  ctx.dialog.querySelectorAll('[data-cover-step]').forEach(item => {
+    const index = Number(item.dataset.coverStep);
+    item.dataset.state = state.job?.status === 'completed' && state.progress || index < state.step ? 'done'
+      : index === state.step ? state.terminal ? 'stopped' : 'current' : 'pending';
+    if (index === state.step && !state.terminal) item.setAttribute('aria-current','step');
+    else item.removeAttribute('aria-current');
+  });
+  const totalLabel = state.queued ? '已排队：' : state.unknown ? '已处理至待核查：' : state.job?.status === 'completed' ? '制作总用时：' : state.terminal ? '停止前制作：' : unconfirmed ? '自开始已过：' : '累计制作：';
+  el('progress-total').textContent = totalLabel + coverDuration(state.elapsed);
+  el('progress-phase').textContent = '本步用时：' + coverDuration(state.phaseElapsed);
+  el('progress-phase').hidden = state.queued || !state.progress;
+  el('progress-worker').textContent = state.worker;
+  el('progress-read').hidden = !ctx.queryInterrupted;
+  const readNotice = ctx.queryInterrupted ? '状态查询暂时中断，以上为最后取得的任务信息。请查询原任务，不要重复生成。' : '';
+  if (el('progress-read').textContent !== readNotice) el('progress-read').textContent = readNotice;
+  el('progress-long').hidden = !state.long;
+  el('progress-long').textContent = state.long ? (unconfirmed ? '上次确认工作：' : '当前工作：') + state.detail + '。可以收起面板，稍后从本报告找回任务；关闭页面不会取消后台任务。积分仅在合格成品保存后结算一次，未交付可用封面不扣分。' : '';
+}
+function coverProgressClock(ctx) {
+  const ticking = ctx.current() && document.visibilityState !== 'hidden' && coverJobPending(ctx.active) && !['outcome_unknown','unknown'].includes(ctx.active.status);
+  if (!ticking && ctx.elapsedTimer != null) {clearInterval(ctx.elapsedTimer);ctx.elapsedTimer=null;}
+  if (ticking && ctx.elapsedTimer == null) ctx.elapsedTimer = setInterval(() => {
+    if (ctx.current() && document.visibilityState !== 'hidden') coverRenderProgress(ctx);
+  },1000);
+}
+function coverResumeRead(ctx) {
+  if (!ctx.current() || document.visibilityState === 'hidden') return;
+  if (ctx.reading) return;
+  if (ctx.busy) {ctx.resumeRead=true;return;}
+  ctx.resumeRead=false;
+  if (ctx.active?.job_id) void coverReadOriginal(ctx);
+  else if (ctx.pending) void coverRefresh(ctx);
+}
+function coverWatchVisibility(ctx) {
+  ctx.visibilityHandler = () => {
+    if (!ctx.current()) return;
+    clearTimeout(ctx.timer);ctx.timer=null;
+    coverProgressClock(ctx);
+    if (document.visibilityState === 'hidden') return;
+    coverRenderProgress(ctx);coverResumeRead(ctx);
+  };
+  document.addEventListener('visibilitychange',ctx.visibilityHandler);
+}
 function coverPendingKey(ctx) {
   return 'noteai_cover_pending_v1:' + encodeURIComponent(ctx.identity.ownerId) + ':' + ctx.report_type + ':' + encodeURIComponent(ctx.report_id);
 }
@@ -8451,6 +8564,8 @@ function closeCoverPanel() {
   if (!ctx) return;
   _coverPanel = null;
   clearTimeout(ctx.timer);
+  if (ctx.elapsedTimer != null) clearInterval(ctx.elapsedTimer);
+  if (ctx.visibilityHandler) document.removeEventListener('visibilitychange',ctx.visibilityHandler);
   ctx.urls.forEach(url => URL.revokeObjectURL(url));
   if (ctx.dialog.open) ctx.dialog.close();
   ctx.dialog.remove();
@@ -8478,6 +8593,8 @@ function coverRender(ctx) {
   if (!ctx.current()) return;
   const el = name => ctx.dialog.querySelector('[data-cover="' + name + '"]');
   const job = ctx.active;
+  const progressState = coverProgressState(ctx);
+  coverRenderProgress(ctx);coverProgressClock(ctx);
   const hasPending = coverJobPending(job) || !!ctx.pending;
   el('source-form').hidden = ctx.savedOnly === true;
   el('quote').textContent = ctx.savedOnly ? '已保存封面 · 重开、下载与排字调整免费。' : ctx.quote?.operation === 'cover_generate' && Number.isFinite(ctx.quote.credits)
@@ -8485,7 +8602,8 @@ function coverRender(ctx) {
     : '封面报价暂不可用，不能提交制作。';
   el('availability').textContent = !ctx.enabled ? (ctx.reason || '封面新任务尚未开放，已保存成品仍可读取。')
     : ctx.quote?.can_afford === false && !hasPending ? '可用积分不足，请先查看账户积分。' : '';
-  el('status').textContent = ctx.notice || (job ? coverTaskStage(job) : '尚无封面任务。选择本人真实素材后即可独立制作，无需重新生成报告。');
+  const stageText = progressState.progress ? ((ctx.queryInterrupted || progressState.workerDelayed ? '上次确认工作：' : '') + progressState.detail) : job ? coverTaskStage(job) : '尚无封面任务。选择本人真实素材后即可独立制作，无需重新生成报告。';
+  el('status').textContent = ctx.notice || stageText;
   if (job?.billing && (!ctx.pending || job.request_id === ctx.pending.request_id)) {
     const bill = job.billing;
     const billingText = ['committed','charged','settled'].includes(bill.status)
@@ -8537,6 +8655,10 @@ function coverRender(ctx) {
       coverSelectTextLayer(ctx);
     }
   }
+  if (ctx.resumeRead && !ctx.busy && !ctx.reading) {
+    ctx.resumeRead=false;
+    void Promise.resolve().then(() => coverResumeRead(ctx));
+  }
 }
 async function coverShowFinal(ctx) {
   const job = ctx.latest;
@@ -8559,6 +8681,8 @@ async function coverShowFinal(ctx) {
 }
 function coverAcceptJob(ctx, job) {
   if (!coverJobMatches(job,ctx)) throw Error('封面任务身份不一致，未显示或重新提交');
+  const serverAt = coverClockValue(job.server_time);
+  if (serverAt !== null) ctx.progressClock = {jobId:job.job_id,serverAt,clientAt:Date.now()};
   ctx.active = job;
   ctx.jobs = [job,...(ctx.jobs || []).filter(item => item.job_id !== job.job_id)];
   if (job.status === 'completed' && job.has_final) {
@@ -8575,34 +8699,44 @@ function coverAcceptJob(ctx, job) {
 }
 function coverScheduleRead(ctx) {
   clearTimeout(ctx.timer);
-  if (!ctx.current() || !coverJobPending(ctx.active)) return;
-  ctx.timer = setTimeout(async () => {
-    if (!ctx.current()) return;
-    const originalJobId = ctx.active.job_id;
-    try {
-      const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(originalJobId));
-      const job = await response.json(); if (!ctx.current() || ctx.active?.job_id !== originalJobId) return;
-      coverAcceptJob(ctx,job); ctx.notice = '';
-      if (!coverJobPending(job)) {
-        // The old quote may have been read while this task held its credits.
-        ctx.quote = null;
-        await coverRefresh(ctx);
-        return;
-      }
-      coverRender(ctx); await coverShowFinal(ctx);
-    } catch (error) { if (ctx.current()) { ctx.notice = '连接暂时中断，后台任务保留。可刷新查询；不要重复生成。'; coverRender(ctx); } }
-    coverScheduleRead(ctx);
-  },['outcome_unknown','unknown'].includes(ctx.active.status) ? 15000 : 4000);
+  ctx.timer = null;
+  if (!ctx.current() || ctx.reading || document.visibilityState === 'hidden' || !coverJobPending(ctx.active)) return;
+  ctx.timer = setTimeout(() => coverReadOriginal(ctx),['outcome_unknown','unknown'].includes(ctx.active.status) ? 15000 : 4000);
+}
+async function coverReadOriginal(ctx) {
+  if (!ctx.current() || ctx.reading || ctx.busy || !ctx.active?.job_id) return;
+  clearTimeout(ctx.timer);ctx.timer=null;
+  const originalJobId = ctx.active.job_id;
+  let terminal = false;
+  ctx.reading = true;coverRender(ctx);
+  try {
+    const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(originalJobId));
+    const job = await response.json(); if (!ctx.current() || ctx.active?.job_id !== originalJobId) return;
+    coverAcceptJob(ctx,job);ctx.notice='';ctx.queryInterrupted=false;
+    terminal = !coverJobPending(job);
+    coverRender(ctx);await coverShowFinal(ctx);
+  } catch (error) {if(ctx.current()) {
+    ctx.queryInterrupted=true;
+    ctx.notice='状态查询暂时中断，请稍后查询原任务；不会自动重新生成。';
+    coverRender(ctx);
+  }} finally {
+    ctx.reading=false;coverRender(ctx);
+    if (terminal && ctx.current()) {
+      // Refresh the quote read while this task held credits, without making a new task.
+      ctx.quote=null;await coverRefresh(ctx);
+    } else coverScheduleRead(ctx);
+  }
 }
 async function coverRefresh(ctx) {
   if (!ctx.current() || ctx.reading) return;
+  clearTimeout(ctx.timer);ctx.timer=null;
   ctx.reading = true; ctx.previewFailedKey = null; coverRender(ctx);
   try {
     if (ctx.savedOnly) {
       const response = await coverFetch(ctx,'/covers/' + encodeURIComponent(ctx.savedJobId));
       const job = await response.json(); if (!ctx.current()) return;
       coverAcceptJob(ctx,job); ctx.enabled = false; ctx.quote = null;
-      ctx.reason = '此处读取已保存成品，不重新运行原报告。'; ctx.notice = '';
+      ctx.reason = '此处读取已保存成品，不重新运行原报告。'; ctx.notice = '';ctx.queryInterrupted=false;
       coverRender(ctx); await coverShowFinal(ctx); return;
     }
     const response = await coverFetch(ctx,ctx.path + '/covers');
@@ -8615,9 +8749,10 @@ async function coverRefresh(ctx) {
     const active = ownPending || jobs.find(coverJobPending) || jobs[0];
     if (active) coverAcceptJob(ctx,active);
     ctx.notice = ctx.pending ? '提交结果待核查，已保留原请求。刷新仅查询，不会自动重新生成或扣分。' : '';
-    coverRender(ctx); await coverShowFinal(ctx); coverScheduleRead(ctx);
-  } catch (error) { if (ctx.current()) { ctx.notice = error.message; coverRender(ctx); } }
-  finally { ctx.reading = false; coverRender(ctx); }
+    ctx.queryInterrupted=false;
+    coverRender(ctx); await coverShowFinal(ctx);
+  } catch (error) { if (ctx.current()) { ctx.queryInterrupted=true;ctx.notice = error.message; coverRender(ctx); } }
+  finally { ctx.reading = false; coverRender(ctx);coverScheduleRead(ctx); }
 }
 async function coverLoadSources(ctx) {
   if (ctx.savedOnly) return;
@@ -8791,6 +8926,9 @@ async function openCoverPanel(reportType, reportId, savedJob = null) {
   dialog.setAttribute('aria-labelledby','report-cover-title');
   dialog.innerHTML = `<div class="cover-panel-head"><div><h2 id="report-cover-title">笔记封面</h2><p>复用这份报告、视觉建议和本人素材，独立制作并保存封面。</p></div><button type="button" data-cover="close" aria-label="关闭封面面板">关闭</button></div>
     <div class="cover-panel-body"><p data-cover="quote" class="cover-panel-note">正在读取独立封面报价…</p><p data-cover="availability" class="cover-panel-note"></p>
+    <section data-cover="progress" class="cover-progress" aria-labelledby="cover-progress-title" hidden><div class="cover-progress-heading"><strong id="cover-progress-title">封面制作进度</strong><span data-cover="progress-count"></span></div>
+    <ol data-cover="progress-steps" class="cover-progress-steps"><li data-cover-step="1"><b aria-hidden="true">1</b><span>素材核对</span></li><li data-cover-step="2"><b aria-hidden="true">2</b><span>设计方向</span></li><li data-cover-step="3"><b aria-hidden="true">3</b><span>构图参考</span></li><li data-cover-step="4"><b aria-hidden="true">4</b><span>原照排版</span></li><li data-cover-step="5"><b aria-hidden="true">5</b><span>质量检查与必要调整</span></li><li data-cover-step="6"><b aria-hidden="true">6</b><span>保存交付</span></li></ol>
+    <p data-cover="progress-detail" class="cover-panel-note" role="status" aria-live="polite"></p><div class="cover-progress-times"><span data-cover="progress-total"></span><span data-cover="progress-phase"></span><span data-cover="progress-worker"></span></div><p data-cover="progress-read" class="cover-panel-note" role="status" hidden></p><p data-cover="progress-long" class="cover-panel-note" hidden></p></section>
     <div data-cover="status" role="status" aria-live="polite" class="cover-panel-status">正在找回本报告封面任务…</div><p data-cover="unknown-history" class="cover-panel-note" style="white-space:pre-line"></p>
     <section data-cover="source-form"><label data-cover="version-label" for="report-cover-note-version" hidden>封面对应笔记版本<select id="report-cover-note-version" data-cover="version"></select></label><p data-cover="version-note" class="cover-panel-note"></p><label for="report-cover-input-title">标题依据（从已有标题选择，设计自动短摘，不改原笔记）</label><select id="report-cover-input-title" data-cover="title"><option value="">结合原题与备选标题自动优选</option></select>
     <p data-cover="source-note" class="cover-panel-note">正在核对原图…</p><div data-cover="sources" class="cover-source-grid"></div>
@@ -8817,7 +8955,7 @@ async function openCoverPanel(reportType, reportId, savedJob = null) {
   el('download').addEventListener('click',() => coverDownload(ctx)); el('upload').addEventListener('click',() => el('file').click());
   el('file').addEventListener('change',() => { const files = [...el('file').files]; el('file').value = ''; void coverUploadSources(ctx,files); });
   if (savedOnly) dialog.querySelector('.cover-panel-head p').textContent = '读取本人已保存封面，不需要原报告仍在保存期。';
-  dialog.showModal(); coverRender(ctx);
+  dialog.showModal(); coverWatchVisibility(ctx);coverRender(ctx);
   await Promise.all([coverRefresh(ctx),coverLoadSources(ctx),coverLoadNoteVersions(ctx)]);
 }
 

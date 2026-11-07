@@ -42,6 +42,7 @@ class RuntimeHooks:
     on_stage: Callable[[str], None] = lambda _stage: None
     on_design: Callable[[dict], None] = lambda _design: None
     on_candidate: Callable[[dict, bytes], None] = lambda _snapshot, _body: None
+    on_progress: Callable[[dict], None] = lambda _progress: None
 
 
 @dataclass

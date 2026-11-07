@@ -157,6 +157,12 @@ class CompoundRenderSDKTests(unittest.TestCase):
                 self.assertEqual(list(Path(negative["output_root"]).rglob("poster.png")), [])
             self.assertEqual((restored / "out/poster.png").read_bytes(), original_png)
             self.assertEqual(len(wire), 7, "Compound local steps and free edit cannot insert model calls")
+            timing = result.design["execution_summary"]
+            self.assertEqual((timing["adapter_attempts"], timing["dropped_attempts"]), (8, 0))
+            self.assertEqual([row["kind"] for row in timing["calls"]].count("qc"), 1)
+            self.assertEqual([row["kind"] for row in timing["calls"]].count("image"), 1)
+            self.assertTrue(all(row["state"] == "responded" for row in timing["calls"]))
+            self.assertEqual(timing["sum_call_ms"], sum(row["elapsed_ms"] for row in timing["calls"]))
         print("COVER_COMPOUND_SDK_PROOF=" + json.dumps({"actual_sdk": True,
             "one_compound_callback": True, "files": 6, "fonts": 1,
             "checks_render_PNG_restore_freeedit": True, "middle_model_calls": 0,
@@ -175,6 +181,8 @@ const [sourcePath,root]=process.argv.slice(1),source=await fs.readFile(sourcePat
 const sha=x=>createHash('sha256').update(x).digest('hex');
 const helpers=source.slice(source.indexOf('function inside('),source.indexOf('async function atomicJSON('));
 const wrapper=source.slice(source.indexOf('  const localExecutors ='),source.indexOf('  const tools = ['));
+const progress=source.slice(source.indexOf('const PUBLIC_PHASES ='),source.indexOf('function toolResultText('));
+const notify=source.slice(source.indexOf('  const notifyProgress ='),source.indexOf('  let geometryRepair ='));
 assert.ok(wrapper.includes('executePreparedRender'),'Actual source has no compound wrapper');
 const activity=source.slice(source.indexOf('function localToolActivity('),source.indexOf('const PROGRESS_MARKER'));
 const request={project_dir:'.',sources:[{path:'assets/original.png'}],text_layers:[]};
@@ -190,8 +198,8 @@ async function setup(mode){
   hostStarted:performance.now(),localToolTail:Promise.resolve(),progressFacts:{},geometryRepair:null,
   inputClosed:false,lastRender:null,lastPreview:null,error:code=>Object.assign(new Error(code),{code}),
   textGeometryNeedsRecheck:()=>null,textGeometryRepairHint:()=>null,renderRejection:()=>null,
-  atomicJSON:async(file,value)=>fs.writeFile(file,JSON.stringify(value))});
- vm.runInContext(helpers+activity+wrapper+'\nglobalThis.register=tool;',ctx);
+  send:()=>{},atomicJSON:async(file,value)=>fs.writeFile(file,JSON.stringify(value))});
+ vm.runInContext(helpers+activity+progress+notify+wrapper+'\nglobalThis.register=tool;',ctx);
  ctx.raw={ok:false,code:'UPSTREAM_POSTER_CONTRACT_FAILED',detail:'retained original CLI detail'};
  const render=ctx.register('cover_render','fixture',{},async()=>{renders++;if(mode==='unknown')throw Object.assign(new Error('supplier unknown'),{code:'SUPPLIER_RESULT_UNKNOWN'});return {content:JSON.stringify(ctx.raw)};});
  ctx.register('cover_check','fixture',{},async()=>{fonts++;return {content:JSON.stringify({code:23,stdout:'original-font-stdout',stderr:'original-font-stderr'})};});
@@ -237,24 +245,28 @@ import assert from 'node:assert/strict';import {createHash}from'node:crypto';
 const [sourcePath,root]=process.argv.slice(1),source=await fs.readFile(sourcePath,'utf8');
 const sha=x=>createHash('sha256').update(x).digest('hex');let hook;
 const helpers=source.slice(source.indexOf('function inside('),source.indexOf('async function atomicJSON('));
+const receiptText=source.slice(source.indexOf('function toolResultText('),source.indexOf('function dataImageHash('));
 const summary=source.slice(source.indexOf('function summaryMaterial('),source.indexOf('\nlet sdk,'));
 const block=source.slice(source.indexOf("    await ctx.session.hook('compaction',"),source.indexOf("    await ctx.session.hook('context',"));
 const ctx=vm.createContext({fs,path,Buffer,sha,MAX_FILE:8388608,checkpoint:{},
  job:{work_dir:root,state_dir:path.join(root,'state'),compaction_output_tokens:8192},error:code=>new Error(code),
  ctx:{session:{hook:async(name,fn)=>{assert.equal(name,'compaction');hook=fn;}}}});
-vm.runInContext(helpers+summary,ctx);await vm.runInContext('(async()=>{'+block+'})()',ctx);
+vm.runInContext(helpers+receiptText+summary,ctx);await vm.runInContext('(async()=>{'+block+'})()',ctx);
 const authored='<html>AUTHORED_ONCE_KEEP_ON_FAILURE</html>',stored='<meta>managed font and CSP</meta>'+authored;
 const receipt={path:'index.html',bytes:Buffer.byteLength(stored),sha256:sha(stored),input_bytes:Buffer.byteLength(authored),input_sha256:sha(authored)};
-async function invoke(mode){
+async function invoke(mode,mixed=false){
  await fs.writeFile(path.join(root,'index.html'),mode==='changed'?stored+'changed':stored);
  const r={...receipt};if(mode==='wrong_input')r.input_sha256='a'.repeat(64);if(mode==='wrong_stored')r.sha256='b'.repeat(64);
  const value={prepare:{files:[r],fonts:[],failed_step:['failed','partial'].includes(mode)?{kind:mode==='partial'?'write':'render',index:0,code:'CHECK_FAILED'}:null,not_run:[]},render:mode==='partial'?null:{ok:mode!=='failed'}};
  const input={request:{project_dir:'.'},prepare:{files:[{path:'index.html',text:authored}],fonts:[]}};
+ const result=mixed?{type:'content',value:[{type:'text',text:JSON.stringify(value)},
+  {type:'file',uri:'data:image/png;base64,aW1hZ2UtcmVjZWlwdA==',mime:'image/png',name:'synthetic.png'}]}:{type:'text',value:JSON.stringify(value)};
  const event={messages:[{role:'assistant',content:[{type:'tool-call',id:'compound',name:'cover_render',input}]},
-  {role:'tool',content:[{type:'tool-result',id:'compound',name:'cover_render',result:{type:'text',value:JSON.stringify(value)}}]}],options:{}};
+  {role:'tool',content:[{type:'tool-result',id:'compound',name:'cover_render',result}]}],options:{}};
  await hook(event);assert.equal(event.options.maxTokens,8192);return JSON.stringify(event.messages);
 }
 const good=await invoke('good');assert.ok(good.includes('[Authored input verified;'));assert.ok(!good.includes(authored));
+const mixed=await invoke('good',true);assert.ok(mixed.includes('[Authored input verified;'));assert.ok(!mixed.includes(authored));assert.ok(mixed.includes('Previously viewed image'));
 for(const mode of ['failed','partial','changed','wrong_input','wrong_stored']){const out=await invoke(mode);assert.ok(out.includes(authored),mode+' discarded unverified authored input');}
 console.log('COVER_COMPOUND_COMPACTION_PROOF='+JSON.stringify({actual_compaction_hook:true,
  successful_dual_SHA_only:true,failed_partial_kept:true,changed_stored_kept:true,forged_input_or_stored_SHA_kept:true,

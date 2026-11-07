@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import logging
 import re
 import secrets
 import uuid
@@ -37,6 +38,11 @@ MAX_ACCEPTANCE_JOBS = 6
 MAX_AGENT_ACCEPTANCE_JOBS = 2
 FEATURE_SQL = Path(__file__).parent / "migrations/features/noteai_xhs_cover_20261019_0001.sql"
 STAGES = frozenset({"queued", "design", "image", "qc", "saving", "completed", "failed", "outcome_unknown"})
+_PROGRESS_KEY = "_execution_progress"
+_PROGRESS_PHASES = ("source_check", "design", "concept", "layout", "qc", "saving")
+_PROGRESS_DETAILS = frozenset({"inspecting_sources", "planning", "generating_reference",
+    "inspecting_reference", "preparing_layout", "rendering", "inspecting_render",
+    "checking_quality", "adjusting", "rechecking", "storing", "waiting_model"})
 
 
 def _now(value=None):
@@ -190,14 +196,106 @@ def _safe_input(snapshot):
     return snapshot
 
 
+def _read_progress(item):
+    """Read content-free observations, never infer them from model output."""
+    try:
+        design = json.loads(item.get("design_json") or "{}")
+        value = design.get(_PROGRESS_KEY) if isinstance(design, dict) else None
+        keys = {"schema_version", "phase", "detail_code", "execution_started_at",
+            "phase_started_at", "last_worker_seen_at", "revision"}
+        if (not isinstance(value, dict) or set(value) != keys
+                or type(value["schema_version"]) is not int or value["schema_version"] != 1
+                or value["phase"] not in _PROGRESS_PHASES or value["detail_code"] not in _PROGRESS_DETAILS
+                or type(value["revision"]) is not int or value["revision"] not in {0, 1}):
+            return None
+        times = []
+        for key in ("execution_started_at", "phase_started_at", "last_worker_seen_at"):
+            if not isinstance(value[key], str) or len(value[key]) > 64:
+                return None
+            times.append(_now(datetime.fromisoformat(value[key])))
+        if not times[0] <= times[1] <= times[2]:
+            return None
+        return {key: value[key] for key in keys}
+    except (TypeError, ValueError, KeyError):
+        return None
+
+
+def _progress_document(item, progress):
+    """Optional metadata must not replace a task's design or its input hash."""
+    original = item.get("design_json") or "{}"
+    try:
+        design = json.loads(original)
+        if not isinstance(design, dict):
+            return original
+        return _json({**design, _PROGRESS_KEY: progress})
+    except (TypeError, ValueError):
+        return original
+
+
+def _claim_progress_document(row, clock):
+    item = dict(row)
+    original = item.get("design_json") or "{}"
+    try:
+        if json.loads(item["policy_json"]).get("design_version") != 3:
+            return original
+    except (TypeError, ValueError, AttributeError):
+        return original
+    progress = _read_progress(item)
+    if progress is None:
+        stamp = clock.isoformat()
+        progress = {"schema_version": 1, "phase": "source_check", "detail_code": "inspecting_sources",
+            "execution_started_at": stamp, "phase_started_at": stamp,
+            "last_worker_seen_at": stamp, "revision": 0}
+    else:
+        progress["last_worker_seen_at"] = max(clock,
+            datetime.fromisoformat(progress["last_worker_seen_at"])).isoformat()
+    return _progress_document(item, progress)
+
+
+def _observe_worker_progress(claim, clock, *, initialize=False):
+    """Best-effort metadata after the authoritative claim/heartbeat commits."""
+    if claim.get("policy_snapshot", {}).get("design_version") != 3:
+        return
+    try:
+        with db.transaction(write=True) as tx:
+            row = _owner_row(tx, claim, now=clock)
+            item = dict(row)
+            if initialize:
+                encoded = _claim_progress_document(row, clock)
+            else:
+                progress = _read_progress(item)
+                if progress is None:
+                    return
+                progress["last_worker_seen_at"] = max(clock,
+                    datetime.fromisoformat(progress["last_worker_seen_at"])).isoformat()
+                encoded = _progress_document(item, progress)
+            if encoded != row["design_json"]:
+                tx.execute("UPDATE cover_jobs SET design_json=? WHERE id=?", (encoded, row["id"]))
+    except Exception:
+        # The separate transaction rolls back; original lease/financial state
+        # and future authoritative supplier-fence checks remain unchanged.
+        logging.warning("cover_progress_worker_observation_unavailable job_id=%s", claim["request_id"])
+
+
 def _projection(row, claim=None):
     item = dict(row)
+    clock = _now()
+    progress = _read_progress(item)
+    if item["status"] == "queued":
+        # Queue state is factual even for a row created before progress support.
+        # It does not claim that a worker has started or confirmed the task.
+        progress = {"schema_version": 1, "phase": "queued", "detail_code": "waiting_slot",
+            "execution_started_at": progress["execution_started_at"] if progress else None,
+            "phase_started_at": item["created_at"], "last_worker_seen_at": None,
+            "revision": progress["revision"] if progress else 0}
     receipt = postdelivery._receipt_values(dict(claim)) if claim else None
     return {"job_id": item["id"], "request_id": item["client_request_id"], "report_type": item["report_type"],
         "report_id": item["report_id"], "status": item["status"], "stage": item["stage"],
         "created_at": item["created_at"], "expires_at": item["expires_at"],
+        "completed_at": item.get("completed_at"), "unknown_at": item.get("unknown_at"),
+        "updated_at": item.get("updated_at"), "server_time": clock.isoformat(), "progress": progress,
         "has_final": bool(item["final_media_ref"] and item["status"] == "completed"
-            and item["expires_at"] and item["expires_at"] > _now().isoformat()),
+            and item["expires_at"] and item["expires_at"] > clock.isoformat()),
         "layout": _public_layout(json.loads(item["layout_json"] or "{}")), "asset_revision": item["asset_revision"],
         "billing": receipt, "failure_code": item["failure_code"]}
 
@@ -424,7 +522,9 @@ def claim_job(job_id, *, lease_seconds=300, now=None):
         financial = tx.fetchone("SELECT * FROM idempotency_requests WHERE id=?", (job_id,))
         if financial["refund_applied"] or financial["complete_applied"]:
             raise ValueError("original cover reservation already settled")
-        return _context(row, financial, token)
+        context = _context(row, financial, token)
+    _observe_worker_progress(context, clock, initialize=True)
+    return context
 
 
 def mark_stage(claim, stage, *, now=None):
@@ -436,6 +536,42 @@ def mark_stage(claim, stage, *, now=None):
         expiry = min(clock+timedelta(seconds=300), datetime.fromisoformat(row["deadline_at"]))
         tx.execute("UPDATE cover_jobs SET stage=?,status=?,lease_expires_at=?,updated_at=? WHERE id=?",
             (stage,"saving" if stage=="saving" else "running",expiry.isoformat(),clock.isoformat(),row["id"]))
+    return True
+
+
+def record_progress(claim, snapshot, *, now=None):
+    """Persist one optional worker observation under the existing owner fence.
+
+    This is independent from supplier intents and delivery/credit decisions.
+    Callers may skip an unavailable observation after this transaction rolls back.
+    """
+    if (not isinstance(snapshot, dict) or set(snapshot) != {"phase", "detail_code", "revision"}
+            or not isinstance(snapshot["phase"], str) or not isinstance(snapshot["detail_code"], str)
+            or snapshot["phase"] not in _PROGRESS_PHASES or snapshot["detail_code"] not in _PROGRESS_DETAILS
+            or type(snapshot["revision"]) is not int or snapshot["revision"] not in {0, 1}):
+        raise ValueError("fixed cover progress observation required")
+    clock = _now(now)
+    with db.transaction(write=True) as tx:
+        row = _owner_row(tx, claim, now=clock)
+        if json.loads(row["policy_json"]).get("design_version") != 3:
+            return False
+        item = dict(row)
+        previous = _read_progress(item)
+        # Do not invent a start time for an older in-flight task. Its existing
+        # stage remains readable until a newly claimed task has this metadata.
+        if previous is None:
+            return False
+        if (snapshot["revision"] < previous["revision"]
+                or _PROGRESS_PHASES.index(snapshot["phase"]) < _PROGRESS_PHASES.index(previous["phase"])):
+            return False
+        stamp = max(clock, datetime.fromisoformat(previous["last_worker_seen_at"])).isoformat()
+        progress = {**previous, **snapshot, "last_worker_seen_at": stamp}
+        if snapshot["phase"] != previous["phase"]:
+            progress["phase_started_at"] = stamp
+        encoded = _progress_document(item, progress)
+        if encoded == item["design_json"]:
+            return False
+        tx.execute("UPDATE cover_jobs SET design_json=? WHERE id=?", (encoded, row["id"]))
     return True
 
 
@@ -509,7 +645,9 @@ def heartbeat_job(claim, *, now=None):
     with db.transaction(write=True) as tx:
         row = _owner_row(tx,claim,now=clock)
         expiry = min(clock+timedelta(seconds=300),datetime.fromisoformat(row["deadline_at"]))
-        tx.execute("UPDATE cover_jobs SET lease_expires_at=?,updated_at=? WHERE id=?",(expiry.isoformat(),clock.isoformat(),row["id"]))
+        tx.execute("UPDATE cover_jobs SET lease_expires_at=?,updated_at=? WHERE id=?",
+            (expiry.isoformat(),clock.isoformat(),row["id"]))
+    _observe_worker_progress(claim, clock)
     return True
 
 
@@ -862,7 +1000,10 @@ def complete_job(claim, *, final_media_ref, base_media_ref, layout, qc_passed, q
         previous_design = json.loads(row["design_json"] or "{}")
         if previous_design:
             if design_version == 3:
-                design_json = _json({**previous_design, **(design_snapshot or {})})
+                merged = {**previous_design, **(design_snapshot or {})}
+                if _PROGRESS_KEY in previous_design:
+                    merged[_PROGRESS_KEY] = previous_design[_PROGRESS_KEY]
+                design_json = _json(merged)
             elif design_snapshot is not None and _json(previous_design) != design_json:
                 raise ValueError("original cover design snapshot changed")
             else:

@@ -145,6 +145,16 @@ def _run_claim(claim, *, runtime=None, operation=None):
         mapped = {"render": "image", "local_adjustment": "qc", "ready_to_save": "saving"}.get(stage, stage)
         cover_jobs.mark_stage(claim, mapped)
 
+    def on_progress(snapshot):
+        if claim["policy_snapshot"].get("design_version") != 3:
+            return
+        try:
+            # Observation owns a separate short transaction. A failed write is
+            # rolled back before returning, never a new delivery/dispatch gate.
+            cover_jobs.record_progress(claim, snapshot)
+        except Exception:
+            logging.warning("cover_progress_checkpoint_unavailable job_id=%s", job_id)
+
     def before(stage, call_id, estimate):
         public_product.assert_result_known()
         if stage == "image":
@@ -180,6 +190,7 @@ def _run_claim(claim, *, runtime=None, operation=None):
         cover_jobs.record_agent_candidate(claim, snapshot, reference)
 
     try:
+        on_progress({"phase": "source_check", "detail_code": "inspecting_sources", "revision": 0})
         if claim["policy_snapshot"].get("design_version") == 3:
             import cover_agent_runtime
             cover_agent_runtime.prepare_original_workspace(claim)
@@ -193,11 +204,13 @@ def _run_claim(claim, *, runtime=None, operation=None):
             report=claim["input_snapshot"], sources=sources,
             design_version=claim["policy_snapshot"].get("design_version", 1),
             hooks=cover_runtime.RuntimeHooks(before_call=before, on_call=after,
-                on_stage=on_stage, on_design=on_design, on_candidate=on_candidate))
+                on_stage=on_stage, on_design=on_design, on_candidate=on_candidate, on_progress=on_progress))
         # A usable artifact must pass the actual final-pixel contract before
         # storage, as well as before the delivery settlement transaction.
         cover_runtime._validate_qc(result.qc)
         on_stage("ready_to_save")
+        on_progress({"phase": "saving", "detail_code": "storing", "revision":
+            1 if result.design.get("local_revisions") == 1 else 0})
         base = _store_image(user_id, result.base_bytes, ttl_seconds=retention, lifecycle=lifecycle)
         final = _store_image(user_id, result.final_bytes, ttl_seconds=retention, lifecycle=lifecycle)
         if result.layout.get("schema_version") == 3:

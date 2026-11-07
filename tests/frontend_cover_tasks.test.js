@@ -3,23 +3,72 @@ const fs=require('node:fs'),vm=require('node:vm'),crypto=require('node:crypto');
 const html=fs.readFileSync(require('node:path').join(__dirname,'../NoteAI_Pro_Demo_Framer.html'),'utf8');
 const code=html.split('/* ── Independent saved-report cover tasks ───────────────────── */')[1].split('/* ── Generation report populate')[0];
 function make(extra={}) {
- const storage=new Map(),calls=[],elements=new Map();
+ const storage=new Map(),calls=[],elements=new Map(),listeners=new Map(),intervals=new Map();
  const el=name=>{if(!elements.has(name))elements.set(name,{textContent:'',value:name==='position'?'top':'',hidden:false,disabled:false,src:'',replaceChildren(...children){this.children=children;this.value=children[0]?.value || '';}});return elements.get(name);};
  const dialog={isConnected:true,open:true,querySelector:selector=>el(selector.match(/"([^"]+)"/)[1]),querySelectorAll:()=>[],close(){this.open=false;},remove(){this.isConnected=false;}};
  let identity=true;
- const c=vm.createContext({console:{...console,warn(){}},document:{createElement:()=>({value:'',textContent:''})},crypto:crypto.webcrypto,sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
+ const c=vm.createContext({console:{...console,warn(){}},document:{visibilityState:'visible',createElement:()=>({value:'',textContent:''}),addEventListener:(name,listener)=>listeners.set(name,listener),removeEventListener:(name,listener)=>{if(listeners.get(name)===listener)listeners.delete(name);}},crypto:crypto.webcrypto,sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
   _historyReportSelection:{report_type:'generate',report_id:'saved-report'},_authToken:'synthetic-token',_authUser:{id:'synthetic-owner'},
   reportIsGeneration:()=>true,reportGenerationResult:()=>null,reportDiagnosisResult:()=>null,completeProductResult:x=>!!x,
   productActionAttributes:()=>'',_chatIdentitySnapshot:()=>({ownerId:'synthetic-owner',epoch:1}),_chatIdentityMatches:()=>identity,
   _fmtLocalTime:x=>x,refreshCreditBalance:async()=>null,FormData,URL:{createObjectURL:()=> 'blob:synthetic',revokeObjectURL:x=>calls.push(['revoke',x])},
-  clearTimeout:x=>calls.push(['clear',x]),setTimeout:()=>99,API_BASE:'http://offline.invalid',showToast(){},...extra});
+  clearTimeout:x=>calls.push(['clear',x]),setTimeout:()=>99,setInterval:callback=>{intervals.set(201,callback);return 201;},clearInterval:id=>intervals.delete(id),API_BASE:'http://offline.invalid',showToast(){},...extra});
  vm.runInContext(code,c);
  const ctx={dialog,report_type:'generate',report_id:'saved-report',identity:{ownerId:'synthetic-owner'},token:'synthetic-token',path:'/reports/generate/saved-report',
   urls:new Set(),selected:new Set(['11111111-1111-4111-8111-111111111111']),sources:[],enabled:true,quote:{operation:'cover_generate',credits:8,quote_version:'cover-v1',can_afford:true,charge_timing:'after_saved_cover'},current:()=>identity&&dialog.isConnected};
  c.ctx=ctx;vm.runInContext('_coverPanel=ctx',c);
- return {c,ctx,calls,storage,elements,el,leave:()=>identity=false};
+ return {c,ctx,calls,storage,elements,el,listeners,intervals,leave:()=>identity=false};
 }
 const completed={job_id:'job-original',request_id:'11111111-1111-4111-8111-111111111111',report_type:'generate',report_id:'saved-report',status:'completed',stage:'completed',has_final:true,asset_revision:1,layout:{text:'真实标题',position:'top',position_options:['top','bottom']},billing:{status:'committed',credits_used:8},expires_at:'2027-01-18T00:00:00Z'};
+const progressJob=()=>({...completed,status:'running',stage:'design',has_final:false,
+ created_at:'2026-11-07T10:00:00Z',server_time:'2026-11-07T10:10:00Z',completed_at:null,unknown_at:null,updated_at:'2026-11-07T10:09:59Z',
+ progress:{schema_version:1,phase:'qc',detail_code:'adjusting',execution_started_at:'2026-11-07T10:00:30Z',phase_started_at:'2026-11-07T10:09:00Z',last_worker_seen_at:'2026-11-07T10:09:45Z',revision:1},
+ billing:{status:'reserved',reserved_credits:8}});
+test('six-step progress uses server phase and clocks, keeps QC adjustment in step5 and separates a stale worker from a read outage',()=>{
+ const {c,ctx,el,intervals}=make();c.coverAcceptJob(ctx,progressJob());c.coverRender(ctx);
+ assert.equal(el('progress-count').textContent,'第5/6步');assert.match(el('progress-detail').textContent,/质检意见.*局部调整/);
+ assert.match(el('status').textContent,/质检意见.*局部调整/);assert.doesNotMatch(el('status').textContent,/正在选图与设计/);
+ assert.equal(el('progress-total').textContent,'累计制作：9分30秒');assert.equal(el('progress-phase').textContent,'本步用时：1分00秒');
+ assert.equal(el('progress-worker').textContent,'后台最近确认：15秒前');assert.equal(el('progress-read').hidden,true);
+ assert.equal(el('progress-long').hidden,false);assert.match(el('progress-long').textContent,/当前工作.*收起面板.*本报告找回.*合格成品保存后结算一次/);
+ assert.equal(intervals.size,1);c.coverRender(ctx);assert.equal(intervals.size,1);
+ ctx.progressClock.clientAt-=90000;ctx.active.updated_at='2026-11-07T10:12:00Z';c.coverRenderProgress(ctx);
+ assert.equal(el('progress-phase').textContent,'本步用时：2分30秒');assert.match(el('progress-worker').textContent,/后台确认已延迟.*1分45秒前.*核对原任务.*勿重复提交/);
+ assert.equal(el('progress-read').hidden,true);assert.match(el('progress-count').textContent,/第5/);
+ ctx.queryInterrupted=true;c.coverRenderProgress(ctx);assert.match(el('progress-count').textContent,/上次确认.*第5/);assert.equal(el('progress-read').hidden,false);
+ assert.match(el('progress-total').textContent,/自开始已过/);assert.match(el('progress-long').textContent,/上次确认工作/);
+ assert.doesNotMatch(el('progress-detail').textContent,/超时失败|预计|倒计时|%/);
+});
+test('queue and old task snapshots never fabricate execution, phase timing or six completed steps',()=>{
+ const {c,ctx,el}=make();const job=progressJob();job.status=job.stage='queued';job.progress={...job.progress,phase:'queued',detail_code:'waiting_slot',execution_started_at:null,last_worker_seen_at:null};
+ c.coverAcceptJob(ctx,job);c.coverRender(ctx);assert.match(el('progress-count').textContent,/排队中.*尚未开始/);assert.match(el('progress-total').textContent,/已排队：10分00秒/);
+ assert.equal(el('progress-phase').hidden,true);assert.match(el('progress-worker').textContent,/尚未开始制作/);assert.equal(c.coverProgressState(ctx).step,0);
+ c.coverAcceptJob(ctx,{...completed,created_at:job.created_at,updated_at:job.server_time,progress:null});c.coverRender(ctx);
+ assert.equal(el('progress-steps').hidden,true);assert.equal(el('progress-phase').hidden,true);assert.match(el('progress-count').textContent,/暂未记录/);assert.match(el('progress-total').textContent,/暂未记录/);
+});
+test('terminal clocks freeze to recorded completion or unknown time, never later download or free-edit updates',()=>{
+ const {c,ctx,el,intervals}=make();const job=progressJob();
+ c.coverAcceptJob(ctx,job);c.coverRender(ctx);assert.equal(intervals.size,1);
+ c.coverAcceptJob(ctx,{...job,status:'completed',stage:'completed',has_final:true,completed_at:'2026-11-07T10:11:00Z',server_time:'2026-11-07T10:20:00Z',updated_at:'2026-11-07T10:19:59Z',billing:completed.billing});c.coverRender(ctx);
+ assert.equal(el('progress-total').textContent,'制作总用时：10分30秒');assert.equal(el('progress-count').textContent,'6步已完成');assert.equal(intervals.size,0);
+ ctx.progressClock.clientAt-=600000;c.coverRenderProgress(ctx);assert.equal(el('progress-total').textContent,'制作总用时：10分30秒');
+ c.coverAcceptJob(ctx,{...job,status:'outcome_unknown',stage:'outcome_unknown',unknown_at:'2026-11-07T10:12:00Z',server_time:'2026-11-07T11:00:00Z'});c.coverRender(ctx);
+ assert.equal(el('progress-count').textContent,'结果待核查');assert.equal(el('progress-total').textContent,'已处理至待核查：11分30秒');assert.match(el('progress-detail').textContent,/原任务.*不会自动.*重发/);assert.equal(intervals.size,0);assert.equal(el('create').disabled,true);
+});
+test('returning to a visible cover reads only the original job once and closing removes clocks and visibility recovery',async()=>{
+ let release,reads=0,posts=0;const gate=new Promise(resolve=>release=resolve);
+ const {c,ctx,listeners,intervals}=make({fetch:async(url,options={})=>{assert.equal(url,'http://offline.invalid/covers/job-original');if(options.method)posts++;reads++;await gate;return {ok:true,json:async()=>progressJob()};}});
+ c.coverAcceptJob(ctx,progressJob());c.coverRender(ctx);c.coverWatchVisibility(ctx);
+ c.document.visibilityState='hidden';listeners.get('visibilitychange')();assert.equal(reads,0);assert.equal(intervals.size,0);
+ c.document.visibilityState='visible';listeners.get('visibilitychange')();listeners.get('visibilitychange')();assert.equal(reads,1);assert.equal(posts,0);assert.equal(intervals.size,1);
+ release();await new Promise(resolve=>setImmediate(resolve));assert.equal(reads,1);assert.equal(posts,0);
+ c.closeCoverPanel();assert.equal(listeners.size,0);assert.equal(intervals.size,0);assert.equal(ctx.dialog.isConnected,false);
+});
+test('a failed visibility GET retains the last real phase and UNKNOWN never becomes a new paid submission',async()=>{
+ const {c,ctx,el}=make({fetch:async()=>{throw new TypeError('offline');}});c.coverAcceptJob(ctx,progressJob());
+ await c.coverReadOriginal(ctx);assert.equal(ctx.active.progress.phase,'qc');assert.equal(ctx.queryInterrupted,true);assert.match(el('progress-read').textContent,/最后取得.*原任务/);
+ assert.equal(ctx.pending,undefined);assert.equal(el('create').disabled,true);assert.match(el('progress-worker').textContent,/后台最近确认/);
+});
 test('fresh report identity never guesses a generation report from title or note id',()=>{
  const {c}=make();c._historyReportSelection=null;c.reportGenerationResult=()=>({note_title:'same title',saved_note_id:'not-a-report'});
  assert.equal(c.coverReportRef('generate'),null);

@@ -5,6 +5,10 @@ const root=path.resolve(__dirname,'..');
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=','base64');
 const quote={operation:'cover_generate',credits:8,quote_version:'synthetic-cover-v1',can_afford:true,charge_timing:'after_saved_cover'};
 const readySources=count=>Array.from({length:count},(_,i)=>({media_ref:`${String(i+1).padStart(8,'0')}-1111-4111-8111-111111111111`,status:'ready',expires_at:'2026-10-21T00:00:00Z',content_type:'image/png'}));
+function savedVersionReport(type) {
+ const note={id:'55555555-5555-4555-8555-555555555555',title:'真实素材合成验证',body:'仅供离线交互验证，不是真实供应商成品。',version:1};
+ return {report_type:type,report_id:'synthetic-saved-report',saved_note_id:note.id,result:{note_title:note.title,note_body:note.body,saved_note_id:note.id,note_version_group:{versions:[note],latest:note}}};
+}
 async function showReport(page,type='generate') {
  await page.evaluate(async type=>{
   _authUser={id:'synthetic-cover-owner',username:'cover-test'};_authToken='synthetic-cover-token';_authVerifiedOwnerId=_authUser.id;
@@ -27,7 +31,10 @@ test('saved-report covers: PC/H5 entries, nine-source selection, reopen, free ad
  let browser;try {browser=await chromium.launch({headless:true,...(process.env.NOTEAI_PLAYWRIGHT_EXECUTABLE?{executablePath:process.env.NOTEAI_PLAYWRIGHT_EXECUTABLE}:{})});}catch(error){await new Promise(r=>server.close(r));throw error;}const receipts=[];
  try {
   for(const viewport of [{width:1280,height:900},{width:390,height:844}]) {
-   const context=await browser.newContext({viewport,acceptDownloads:true,serviceWorkers:'block'});const page=await context.newPage();
+   const context=await browser.newContext({viewport,acceptDownloads:true,serviceWorkers:'block'});
+   // This scenario verifies the authenticated Blob fallback; picker save is covered separately.
+   await context.addInitScript(()=>Object.defineProperty(globalThis,'showSaveFilePicker',{configurable:true,value:undefined}));
+   const page=await context.newPage();
    const calls=[],consoleErrors=[],pageErrors=[],failedResources=[];let sources=readySources(9),job=null,enabled=true,unknownPost=false,source404=false,deliveredJob=null,rejectMode='';
    page.on('response',response=>{if(response.status()>=400)failedResources.push({url:response.url(),status:response.status()});});
    page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});page.on('pageerror',error=>pageErrors.push(error.message));
@@ -38,6 +45,8 @@ test('saved-report covers: PC/H5 entries, nine-source selection, reopen, free ad
     if(!url.pathname.startsWith('/synthetic-api/'))return route.continue();
     const p=url.pathname.replace('/synthetic-api',''),method=req.method();calls.push({p,method,authorization:req.headers().authorization||'',body:req.postData()});
     const send=data=>route.fulfill({contentType:'application/json',body:JSON.stringify(data)});
+    const report=/^\/reports\/(generate|analyze)\/synthetic-saved-report$/.exec(p);
+    if(report&&method==='GET')return send(savedVersionReport(report[1]));
     if(p.endsWith('/cover-sources')&&method==='GET'&&source404)return route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({detail:'原报告已到期'})});
     if(p==='/covers'&&method==='GET')return send({jobs:job?.status==='completed'?[job]:[]});
     if(p.endsWith('/cover-sources')&&method==='GET')return send({status:sources.length?'ready':'reupload_required',sources,ready_count:sources.length});
@@ -157,4 +166,82 @@ test('saved-report covers: PC/H5 entries, nine-source selection, reopen, free ad
   }
  } finally {await browser.close();await new Promise(r=>server.close(r));}
  if(process.env.NOTEAI_COVER_UI_EVIDENCE)await fs.writeFile(path.join(process.env.NOTEAI_COVER_UI_EVIDENCE,'browser-receipt.json'),JSON.stringify({status:'PASS',Browser:'Browser plugin not available; bundled regular Playwright',network:'LOOPBACK_STATIC_AND_SYNTHETIC_API_ONLY',realModelCalls:0,receipts},null,2));
+});
+test('truthful cover progress cards retain six steps, distinguish confirmation delays and restore one GET on PC/H5',{timeout:60000},async()=>{
+ const server=http.createServer(async(req,res)=>{
+  const name=new URL(req.url,'http://local').pathname;
+  if(name==='/favicon.ico'){res.writeHead(204);return res.end();}
+  if(!['/NoteAI_Pro_Demo_Framer.html','/assets/vendor/echarts-5.4.3.min.js','/assets/vendor/lucide-1.27.0.min.js','/assets/vendor/qrcode-generator-2.0.4.js','/assets/vendor/three.module.min.js','/assets/payment-native.js','/assets/landing/v04-quality-engine.png'].includes(name)){res.writeHead(404);return res.end();}
+  try{const body=await fs.readFile(path.join(root,name));res.writeHead(200,{'Content-Type':name.endsWith('.html')?'text/html':name.endsWith('.png')?'image/png':'application/javascript'});res.end(body);}catch{res.writeHead(404);res.end();}
+ });
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const origin='http://127.0.0.1:'+server.address().port;
+ let browser;const receipts=[],output=process.env.NOTEAI_COVER_UI_EVIDENCE;
+ try{
+  browser=await chromium.launch({headless:true,...(process.env.NOTEAI_PLAYWRIGHT_EXECUTABLE?{executablePath:process.env.NOTEAI_PLAYWRIGHT_EXECUTABLE}:{})});
+  if(output)await fs.mkdir(output,{recursive:true});
+  for(const viewport of [{width:1280,height:900},{width:390,height:844}]){
+   const context=await browser.newContext({viewport,serviceWorkers:'block'}),page=await context.newPage(),requests=[],pageErrors=[];
+   page.on('pageerror',error=>pageErrors.push(error.message));
+   const now=Date.now(),iso=offset=>new Date(now+offset).toISOString();
+   let outage=false,job={job_id:'33333333-3333-4333-8333-333333333333',request_id:'44444444-4444-4444-8444-444444444444',report_type:'generate',report_id:'synthetic-saved-report',status:'queued',stage:'queued',created_at:iso(-120000),server_time:iso(0),has_final:false,asset_revision:0,billing:{status:'reserved',reserved_credits:8,credits_used:0},progress:{schema_version:1,phase:'queued',detail_code:'waiting_slot',execution_started_at:null,phase_started_at:iso(-120000),last_worker_seen_at:null,revision:0}};
+   await context.route('**/*',async route=>{
+    const req=route.request(),url=new URL(req.url());if(url.origin!==origin)return route.abort('blockedbyclient');
+    if(url.pathname==='/runtime-config.js')return route.fulfill({contentType:'application/javascript',body:`window.NOTEAI_API_BASE=${JSON.stringify(origin+'/synthetic-api')};`});
+    if(!url.pathname.startsWith('/synthetic-api/'))return route.continue();
+    const pathname=url.pathname.replace('/synthetic-api','');requests.push({path:pathname,method:req.method()});
+    const send=value=>route.fulfill({contentType:'application/json',body:JSON.stringify(value)});
+    const report=/^\/reports\/(generate|analyze)\/synthetic-saved-report$/.exec(pathname);
+    if(report&&req.method()==='GET')return send(savedVersionReport(report[1]));
+    if(pathname==='/covers/'+job.job_id){
+     if(outage)return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({detail:'受控查询断线'})});
+     return send(job);
+    }
+    if(pathname.endsWith('/covers'))return send({enabled:true,quote,jobs:[job],latest_success:null});
+    if(pathname.endsWith('/cover-sources'))return send({status:'ready',sources:readySources(9),ready_count:9});
+    if(/\/cover-sources\/[^/]+$/.test(pathname))return route.fulfill({contentType:'image/png',body:png});
+    if(pathname==='/billing/plan')return send({total_available_credits:100});
+    if(pathname==='/public/status')return send({image_open:true,ai_open:true});
+    if(pathname==='/auth/me')return send({user:{id:'synthetic-cover-owner',username:'cover-test'}});
+    return send({});
+   });
+   await context.routeWebSocket('**/*',socket=>socket.close());await page.goto(origin+'/NoteAI_Pro_Demo_Framer.html');await showReport(page);
+   await page.getByRole('button',{name:'一键生成笔记封面',exact:true}).click();const panel=page.locator('#report-cover-panel');
+   await page.waitForFunction(()=>document.querySelector('[data-cover="progress-count"]')?.textContent.includes('排队中'));
+   await page.waitForFunction(()=>_coverPanel.noteVersionsLoading===false);
+   assert.match(await panel.locator('[data-cover="version-note"]').textContent(),/使用已保存的 v1/);
+   assert.equal(await panel.locator('[aria-current="step"]').count(),0);assert.match(await panel.locator('[data-cover="progress-total"]').textContent(),/已排队：2分/);
+   const phaseNames=['source_check','design','concept','layout','qc','saving'],details=['inspecting_sources','planning','generating_reference','rendering','adjusting','storing'];
+   for(const [index,phase]of phaseNames.entries()){
+    job={...job,status:'running',stage:phase==='qc'?'design':phase,server_time:iso(0),progress:{schema_version:1,phase,detail_code:details[index],execution_started_at:iso(-360000),phase_started_at:iso(-30000),last_worker_seen_at:iso(-10000),revision:phase==='qc'?1:0}};
+    await panel.locator('[data-cover="refresh"]').click();await page.waitForFunction(step=>document.querySelector('[data-cover="progress-count"]')?.textContent===`第${step}/6步`,index+1);
+    assert.equal(await panel.locator('[aria-current="step"]').getAttribute('data-cover-step'),String(index+1));
+   }
+   job={...job,stage:'design',progress:{...job.progress,phase:'qc',detail_code:'adjusting',last_worker_seen_at:iso(-100000),revision:1}};
+   await panel.locator('[data-cover="refresh"]').click();await page.waitForFunction(()=>document.querySelector('[data-cover="progress-worker"]')?.textContent.includes('后台确认已延迟'));
+   assert.match(await panel.locator('[data-cover="progress-count"]').textContent(),/上次确认.*第5\/6步/);
+   assert.match(await panel.locator('[data-cover="progress-detail"]').textContent(),/质检意见.*局部调整/);
+   assert.match(await panel.locator('[data-cover="progress-long"]').textContent(),/上次确认工作.*收起面板.*合格成品保存后结算一次/);
+   assert.equal(await panel.locator('[data-cover="progress-read"]').isVisible(),false);
+   assert.ok(await panel.evaluate(el=>el.scrollWidth<=el.clientWidth+1));
+   if(output){await panel.evaluate(el=>el.scrollTop=0);await page.screenshot({path:path.join(output,`progress-six-steps-${viewport.width}.png`)});}
+   const visibility=async value=>page.evaluate(value=>{Object.defineProperty(document,'visibilityState',{configurable:true,value});document.dispatchEvent(new Event('visibilitychange'));},value);
+   await visibility('hidden');outage=true;await visibility('visible');
+   await page.waitForFunction(()=>document.querySelector('[data-cover="progress-read"]')?.hidden===false);
+   assert.match(await panel.locator('[data-cover="progress-read"]').textContent(),/查询暂时中断.*最后取得/);
+   assert.match(await panel.locator('[data-cover="progress-worker"]').textContent(),/后台确认已延迟/);
+   assert.equal(await panel.locator('[data-cover="create"]').isDisabled(),true);
+   if(output){await panel.evaluate(el=>el.scrollTop=0);await page.screenshot({path:path.join(output,`progress-query-offline-${viewport.width}.png`)});}
+   await visibility('hidden');outage=false;job={...job,status:'outcome_unknown',stage:'outcome_unknown',unknown_at:iso(0)};
+   const originalReads=requests.filter(row=>row.path==='/covers/'+job.job_id).length;await visibility('visible');
+   await page.waitForFunction(()=>document.querySelector('[data-cover="progress-count"]')?.textContent==='结果待核查');
+   assert.equal(requests.filter(row=>row.path==='/covers/'+job.job_id).length,originalReads+1);
+   assert.match(await panel.locator('[data-cover="progress-detail"]').textContent(),/原任务.*不会自动.*重发/);
+   assert.equal(await panel.locator('[data-cover="progress-read"]').isVisible(),false);assert.equal(await page.evaluate(()=>_coverPanel.elapsedTimer),null);
+   await panel.locator('[data-cover="close"]').click();const closedReads=requests.length;await visibility('hidden');await visibility('visible');
+   assert.equal(requests.length,closedReads);assert.equal(await page.locator('#report-cover-panel').count(),0);assert.equal(requests.filter(row=>row.method==='POST').length,0);assert.deepEqual(pageErrors,[]);
+   receipts.push({viewport,title:await page.title(),sixPhases:true,queueSeparate:true,qcCorrectionStep5:true,workerDelaySeparateFromReadOutage:true,visibilityOriginalGetOnly:true,unknownNoPaidResubmit:true,closeCleanup:true,coverPosts:0,pageErrors,API:'MOCK_ONLY',realModelCalls:0,visibility:'CONTROLLED_DOCUMENT_EVENT',realIphoneSave:false});
+   await context.close();
+  }
+ }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}
+ if(output)await fs.writeFile(path.join(output,'progress-browser-receipt.json'),JSON.stringify({status:'PASS',network:'LOOPBACK_STATIC_AND_SYNTHETIC_API_ONLY',realModelCalls:0,receipts},null,2));
 });

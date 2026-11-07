@@ -112,6 +112,65 @@ function coverProgressFeedback({ deadlineEpochMs, nowMs, minimumRemainingMs, sta
 }
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const error = (code) => Object.assign(new Error(code), { code });
+const PUBLIC_PHASES = ['source_check', 'design', 'concept', 'layout', 'qc', 'saving'];
+const PUBLIC_DETAILS = ['inspecting_sources', 'planning', 'generating_reference', 'inspecting_reference',
+  'preparing_layout', 'rendering', 'inspecting_render', 'checking_quality', 'adjusting', 'rechecking', 'storing', 'waiting_model'];
+function progressSnapshot(phase, detail, revision) {
+  if (!PUBLIC_PHASES.includes(phase) || !PUBLIC_DETAILS.includes(detail) || ![0, 1].includes(revision)) return null;
+  return { phase: revision && phase !== 'saving' ? 'qc' : phase, detail_code: detail, revision };
+}
+function toolResultText(result) {
+  if (result?.type === 'text' && typeof result.value === 'string') return result.value;
+  if (result?.type === 'content' && Array.isArray(result.value)) {
+    const parts = result.value.filter((part) => part.type === 'text' && typeof part.text === 'string');
+    if (parts.length === 1) return parts[0].text;
+  }
+  return null;
+}
+function dataImageHash(uri) {
+  if (typeof uri !== 'string' || !/^data:image\/(?:png|jpeg|webp);base64,/.test(uri)) return null;
+  const encoded = uri.slice(uri.indexOf(',') + 1);
+  if (encoded.length > Math.ceil(MAX_FILE / 3) * 4) return null;
+  return sha(Buffer.from(encoded, 'base64'));
+}
+async function resultWithPixels(result, root, receipts, readImage = imageFile) {
+  if (typeof result?.content !== 'string' || !Array.isArray(receipts) || receipts.length < 1 || receipts.length > 2)
+    throw error('INLINE_IMAGE_RECEIPT_INVALID');
+  const files = [];
+  for (const receipt of receipts) {
+    if (typeof receipt?.path !== 'string' || !/^[a-f0-9]{64}$/.test(receipt.sha256))
+      throw error('INLINE_IMAGE_RECEIPT_INVALID');
+    const file = await readImage(root, receipt.path);
+    if (dataImageHash(file.uri) !== receipt.sha256) throw error('INLINE_IMAGE_CHANGED');
+    files.push({ type: 'file', ...file });
+  }
+  // Reading a file never declares it seen. Python checks the bytes in the next
+  // actual prepared model request before any final/thumbnail inspection passes.
+  return { ...result, content: [{ type: 'text', text: result.content }, ...files] };
+}
+function firstDraftRequest(body, state) {
+  if (!state?.concept_sha256 || state.first_draft_attempted || state.first_draft_fallback
+      || state.artifact || !Array.isArray(body.tools)
+      || (body.tool_choice !== undefined && body.tool_choice !== 'auto')) return body;
+  const hasConcept = (body.messages || []).some((message) => Array.isArray(message.content)
+    && message.content.some((part) => part.type === 'image_url'
+      && dataImageHash(typeof part.image_url === 'string' ? part.image_url : part.image_url?.url) === state.concept_sha256));
+  if (!hasConcept) return body; // Keep explicit cover_view recovery when media was trimmed.
+  const render = body.tools.find((item) => item.type === 'function' && item.function?.name === 'cover_render');
+  if (!render?.function.parameters?.properties?.prepare?.properties?.files) return body;
+  const guided = JSON.parse(JSON.stringify(render));
+  const parameters = guided.function.parameters;
+  parameters.required = [...new Set([...(parameters.required || []), 'prepare'])];
+  parameters.properties.prepare.properties.files.minItems = 6;
+  parameters.properties.prepare.properties.files.maxItems = 6;
+  // Preserve original-photo detail inspection. This only guides the first
+  // complete draft; any actual local rejection restores all existing tools.
+  return { ...body, tools: body.tools.filter((item) => item.function?.name === 'cover_view').concat(guided) };
+}
+function modelTiming(previous, record) {
+  const records = Array.isArray(previous) ? previous.slice(-127) : [];
+  return [...records, record];
+}
 function recoverableOriginalViewRejection(result, images, completed) {
   return result?.ok === false && result.code === 'COVER_AGENT_ORIGINALS_NOT_VIEWED'
     && result.recoverable === true && result.dispatched === false
@@ -610,15 +669,30 @@ try {
     }
     const owner = Symbol('model request'), requestKind = req.headers['x-noteai-host-kind'];
     gatewayOwner = owner;
-    let physical = false, ownIntent = null;
+    let physical = false, ownIntent = null, modelStarted = null, timingRecorded = false;
+    const noteModelTiming = (state, httpStatus = null) => {
+      if (modelStarted === null || timingRecorded) return;
+      timingRecorded = true;
+      try {
+        const phase = checkpoint.execution_progress?.phase;
+        const duration = Math.min(86400000, Math.max(0, Math.floor(performance.now() - modelStarted)));
+        checkpoint.model_timings_dropped = (checkpoint.model_timings_dropped || 0)
+          + (checkpoint.model_timings?.length >= 128 ? 1 : 0);
+        checkpoint.model_timings = modelTiming(checkpoint.model_timings, { ordinal: ownIntent.ordinal,
+          kind: ownIntent.label, phase: PUBLIC_PHASES.includes(phase) ? phase : 'design',
+          elapsed_ms: duration, state, http_status: httpStatus });
+      } catch { /* Optional timing cannot replace the actual known/UNKNOWN result. */ }
+    };
     try {
       if (req.method !== 'POST' || req.url !== '/v1/chat/completions') throw error('MODEL_ROUTE_FORBIDDEN');
       const chunks = []; let size = 0;
       for await (const chunk of req) { size += chunk.length; if (size > MAX_LINE) throw error('MODEL_REQUEST_TOO_LARGE'); chunks.push(chunk); }
-      const body = JSON.parse(Buffer.concat(chunks, size).toString('utf8')), wasStream = body.stream === true;
+      let body = JSON.parse(Buffer.concat(chunks, size).toString('utf8'));
+      const wasStream = body.stream === true;
       if (job.mode === 'inspect') throw error('INSPECT_FORBIDS_MODEL_CALL');
       if (checkpoint.status === 'UNKNOWN' || checkpoint.pending_tool) throw error('PREVIOUS_TOOL_UNKNOWN_NO_CONTINUATION');
       if (Date.now() >= job.deadline_epoch_ms || (job.max_model_requests != null && requests >= job.max_model_requests)) throw error('MODEL_REQUEST_LIMIT');
+      body = firstDraftRequest(body, checkpoint);
       body.stream = false; delete body.stream_options;
       if (body.model !== job.model_id) throw error('MODEL_ID_NOT_LOCKED');
       const label = requestKind;
@@ -664,9 +738,11 @@ try {
       if (Date.now() >= job.deadline_epoch_ms || (job.max_model_requests != null
           && ownIntent.ordinal > job.max_model_requests)) throw error('MODEL_REQUEST_LIMIT');
       physical = true;
+      modelStarted = performance.now();
       const answer = await bridge('model_request', { ordinal: ownIntent.ordinal, label: ownIntent.label, method: 'POST', path: '/chat/completions', body });
       if (answer.unknown) throw error('SUPPLIER_RESULT_UNKNOWN');
       if (!Number.isInteger(answer.status) || answer.status < 100 || answer.status > 599) throw error('MODEL_RESPONSE_INVALID');
+      noteModelTiming('responded', answer.status);
       if (checkpoint.status === 'UNKNOWN' || checkpoint.pending_tool || gatewayOwner !== owner
           || checkpoint.status !== 'AWAITING_MODEL' || requests !== ownIntent.ordinal
           || !pendingIntentMatches(checkpoint.pending_request, ownIntent))
@@ -680,6 +756,7 @@ try {
       if (wasStream && answer.status >= 200 && answer.status < 300) { output = completionSSE(JSON.parse(payload)); contentType = 'text/event-stream'; }
       res.writeHead(answer.status, { 'content-type': contentType }); res.end(output);
     } catch (e) {
+      if (physical) noteModelTiming(checkpoint.pending_request ? 'unconfirmed' : 'failed');
       rememberFailure(e.code, 'gateway');
       if (!physical && ownIntent && pendingIntentMatches(checkpoint.pending_request, ownIntent)
           && checkpoint.status !== 'UNKNOWN' && !checkpoint.pending_tool)
@@ -713,6 +790,14 @@ try {
   let localToolTail = Promise.resolve();
   const progressFacts = { local_revision: job.mode === 'revise', concept_pixels_returned: false,
     render_needs_refresh: job.mode === 'revise', final_pixels_returned: false };
+  const notifyProgress = async (phase, detail) => {
+    const snapshot = progressSnapshot(phase, detail, job.mode === 'revise' ? 1 : 0);
+    if (!snapshot || JSON.stringify(snapshot) === JSON.stringify(checkpoint.execution_progress)) return;
+    checkpoint.execution_progress = snapshot;
+    // Optional observations never replace the dispatch/UNKNOWN checkpoint.
+    try { await atomicJSON(checkpointPath, checkpoint); } catch { /* The critical paths retain their own writes. */ }
+    send({ type: 'progress', ...snapshot });
+  };
   let geometryRepair = null;
   const progressFilePresent = async (relativePath) => {
     try { const stat = await fs.lstat(path.join(job.work_dir, relativePath)); return stat.isFile() && !stat.isSymbolicLink(); }
@@ -779,6 +864,7 @@ try {
           const value = JSON.parse(returned.content); result.prepare.fonts.push(value);
           if (value.code !== 0) return fail(at, value.code ?? 'FONT_RESPONSE_INVALID');
         } else {
+          await notifyProgress('layout', 'rendering');
           const returned = await localExecutors.get('cover_render')({ request });
           result.render = JSON.parse(returned.content);
           if (result.render?.ok !== true) return fail(at, result.render?.code || 'RENDER_NOT_COMPLETED');
@@ -818,6 +904,11 @@ try {
     await remember('running');
     try {
       if (inputClosed || Date.now() >= job.deadline_epoch_ms) throw error('LOCAL_TOOL_DEADLINE');
+      if (name === 'cover_seedream') await notifyProgress('concept', 'generating_reference');
+      else if (name === 'cover_render') {
+        checkpoint.first_draft_attempted = true;
+        await notifyProgress('layout', args.prepare === undefined ? 'rendering' : 'preparing_layout');
+      } else if (name === 'cover_write' || name === 'cover_check') await notifyProgress('layout', 'preparing_layout');
       const result = name === 'cover_render' && args.prepare !== undefined
         ? await executePreparedRender(args) : await execute(args);
       if (name === 'cover_view') {
@@ -843,8 +934,43 @@ try {
         }
       }
       outcome = 'returned';
+      // Return actual pixels together with their existing JSON receipts. The
+      // following model decision can inspect them without a view-only turn.
+      // A local attachment failure keeps the original result/manual-view path.
+      try {
+        let receipts = null;
+        if (name === 'cover_seedream') {
+          const value = JSON.parse(result.content);
+          if (value.role === 'design_concept_reference_only_not_shipping_photo'
+              && value.path === 'reference/composition-reference.png') {
+            checkpoint.concept_sha256 = value.sha256;
+            receipts = [{ path: value.path, sha256: value.sha256 }];
+          }
+        } else if (name === 'cover_render') {
+          const value = JSON.parse(result.content), rendered = args.prepare === undefined ? value : value.render;
+          if (rendered?.ok === true && lastRender?.ok === true && lastPreview
+              && rendered.png_sha256 === lastRender.png_sha256
+              && rendered.thumbnail_sha256 === lastPreview.sha256)
+            receipts = [{ path: path.relative(job.work_dir, lastRender.png_path), sha256: lastRender.png_sha256 },
+              { path: path.relative(job.work_dir, lastPreview.path), sha256: lastPreview.sha256 }];
+        }
+        if (receipts) {
+          const attached = await resultWithPixels(result, job.work_dir, receipts);
+          if (name === 'cover_seedream') {
+            progressFacts.concept_pixels_returned = true;
+            await notifyProgress('concept', 'inspecting_reference');
+          } else {
+            progressFacts.final_pixels_returned = true;
+            await notifyProgress('layout', 'inspecting_render');
+          }
+          return attached;
+        }
+      } catch {
+        checkpoint.inline_pixels_fallbacks = (checkpoint.inline_pixels_fallbacks || 0) + 1;
+      }
       return result;
     } catch (e) {
+      checkpoint.first_draft_fallback = true;
       if (name === 'cover_render') geometryRepair = null;
       outcome = /UNKNOWN/.test(e.code || '') ? 'unknown' : 'failed';
       if (/UNKNOWN/.test(e.code || '')) { checkpoint.status = 'UNKNOWN'; await atomicJSON(checkpointPath, checkpoint); }
@@ -1004,9 +1130,9 @@ try {
       event.messages = event.messages.map((message) => ({ ...message, content: [...(message.content || [])] }));
       const saved = new Map();
       for (const message of event.messages) for (const part of message.content || []) {
-        if (part.type !== 'tool-result' || part.name !== 'cover_write' || part.result?.type !== 'text') continue;
+        if (part.type !== 'tool-result' || part.name !== 'cover_write') continue;
         try {
-          const receipt = JSON.parse(part.result.value);
+          const receipt = JSON.parse(toolResultText(part.result));
           const keys = receipt && Object.keys(receipt).sort().join(',');
           if (receipt && ['bytes,path,sha256', 'bytes,input_bytes,input_sha256,path,sha256'].includes(keys)
               && typeof receipt.path === 'string' && Number.isSafeInteger(receipt.bytes) && receipt.bytes >= 0
@@ -1033,9 +1159,9 @@ try {
       }
       const preparedWrites = new Map();
       for (const message of event.messages) for (const part of message.content || []) {
-        if (part.type !== 'tool-result' || part.name !== 'cover_render' || part.result?.type !== 'text') continue;
+        if (part.type !== 'tool-result' || part.name !== 'cover_render') continue;
         try {
-          const value = JSON.parse(part.result.value);
+          const value = JSON.parse(toolResultText(part.result));
           // Keep failed/partial preparations and original render errors whole.
           if (value?.prepare?.failed_step !== null || value?.render?.ok !== true
               || !Array.isArray(value.prepare.files) || value.prepare.files.length > 6) continue;
@@ -1081,7 +1207,11 @@ try {
       // our own prior marker, so every request gets current facts without growth.
       event.system = event.system.filter((part) => !(part.type === 'text'
         && typeof part.text === 'string' && part.text.startsWith(PROGRESS_MARKER)));
-      event.system.push({ type: 'text', text: PROGRESS_MARKER + JSON.stringify(await currentCoverProgress()) });
+      const progress = await currentCoverProgress();
+      const detail = ['inspect_render', 'review'].includes(progress.stage) ? 'inspecting_render' : 'preparing_layout';
+      await notifyProgress(progress.stage === 'concept' ? 'design' : progress.stage === 'inspect_concept' ? 'concept' : 'layout',
+        progress.stage === 'concept' ? 'planning' : progress.stage === 'inspect_concept' ? 'inspecting_reference' : detail);
+      event.system.push({ type: 'text', text: PROGRESS_MARKER + JSON.stringify(progress) });
       if (!(checkpoint.compaction_requests > 0)) return;
       // SDK compaction may drop the original user-attached Skill and brief.
       // Restore their exact text, not the old image/history payloads. Original
