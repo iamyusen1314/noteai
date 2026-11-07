@@ -6357,3 +6357,33 @@ Root后端67 PASS11.885s，含新进度10、旧jobs/service/API/冻结v2；实�
 根证据E/COVER-SPEED-PROGRESS-OFFLINE-READY001.json3356/SHA0a06bed3，backend3189/3855a195，UI final-ui-r4/UI-FINAL-EVIDENCE.json2594/fae667ed；原失败logs保留。真实正常9531页面已确认原82f/v2、6素材可用、旧D3成品/2855.5分，无新任务；E/COVER-SPEED-PROGRESS-BASELINE-UI.txt。权威P.fullchain9531_20261106.latency_progress_update_20261107：阶段1/2完成、阶段3进行、阶段4源码GO待实际交付，生产仍4b9/3c9/config2/2/static62f7；新供应商/生产操作0，无在途或新UNKNOWN。
 
 下一Root按source-bound既有flat COPY builder（wire16663/Base6422220）构建并复用原networknone/3GiB/2CPU同款Linux runner精确50相关目标，之后沿原61/90排空API/Pay成对切换、两leaf静态指针与原回退；实际supplier验收只复用82f已保存v2/6原照新建1封面，沿已批准充值范围记真实调用/耗时/成本、保存找回/免费改字/下载/唯一8。release作者只编新惰性适配，final-reader作者只编原app-role只读适配，Root唯一云/生产操作者；生产配置/其他服务/WorkerC不改，旧所有UNKNOWN/成本不清零。
+
+
+### CURRENT 2026-11-07 实际构建完成；Linux验收仅环境修正，接续原请求
+
+source91b71候选image79071cd047e3cd9ebc9fc8935f72cc99be9038f4217b5649ec0a4595a2776866构建成功，E/COVER-SPEED-PROGRESS-API-BUILD001.ACTUAL-RESULT.json9398/c373058b。生产仍4b9/3c9/static62f7/config2/2，三CID未变，新增供应商/生产操作0。LinuxR1未入测试因Root误用通用浏览器路径；核原stderr后仅QA配置现有/deps/Node24及受pin原browser wrapper。R2实际50执行49PASS/1ERROR，唯一免费改字恢复fixture未设可写state root而写只读/app/.cache；OOM0/peak864600064B，不是产品/供应商失败。原失败和完整stdout保留，未放松测试或产品校验。
+
+R3仅QA child增加既有NOTEAI_COVER_AGENT_STATE_ROOT=/qa-data/qa/agent-state及新技术CASE，same50/候选/source/只读/netnone/3GiB/2CPU/cleanup不变，7段fixture沿用原成功件。当前原请求t-sz072cld6c14o3k/c-sz072cld6br52ps在途，只查同ID；恢复索引E/COVER-SPEED-PROGRESS-QA-R3-READY-INDEX.json14353/839de6e4，权威P latency_progress_update_20261107已记录。Root查终态→实际PASS后原发布bind/排空成对切换→两leaf静态→9531原82f/v2/6图1新封面真实闭环；原D3/旧UNKNOWN不重发。官方原火山账号余额实际19.71元已只读核，沿用户充值范围授权，不充值/新权限。发布binder已只读核R2/R3路径动态兼容，未绑定失败QA。
+
+
+### CURRENT 2026-11-07 01:45UTC 实际同款Linux50全部通过，原发布进行中
+
+R3原请求t-sz072cld6c14o3k/c-sz072cld6br52ps实际Finished/exit0/Dropped0，COVER-SPEED-PROGRESS-QA-R3001.ACTUAL-RESULT.json17748/SHA9f8077d80a60671b3cef778d4c1f663a45af8c403bb7c7e916cdbaf6b30226ba。50tests/0error/0failure/0skip、Nodev24.22.1/实际SDK及浏览器、3GiB/2CPU/PIDs512，peak866459648B/各OOM和PIDsmax0，原netnone/无生产ENV或数据挂载/ownedcleanup均真、35source closure实核；供应商/生产DB操作0。R1/R2失败原件保留，不冒产品故障或付费验证。独立接口作者也确认state-root仅QA隔离缺口，无需产品更改。
+
+发布作者仅本地把实际build＋成功R3＋readyindex三ref绑定原publisher；Root审实际计划后沿原61/90quiet、allTX/PID1/localrender排空、API/Pay成对切换和原abort/rollback，再同CASE实际APIOPEN绑定两leafstatic。生产当前仍4b9/3c9/static62f7，尚无新真实任务；下一项已在执行，非交接停止。
+
+
+### CURRENT 2026-11-07 01:56UTC 91b71生产已上线；真实唯一封面1afb在途
+
+原API发布t-sz072clyb5nr4sg/c-sz072clyb58rqps实际S0/D0/verify/config2/2/OPEN，E/COVER-SPEED-PROGRESS-RELEASE-PUBLISH001.ACTUAL-RESULT.json1797/37fd3074。API CIDcd70a37bf91af29b3e6d0bfc3bae7088454e32c656c2e8bdfe5439199f9ecc06/image79071/profile96c3db5cb6b527c4b4ba4008ca3736cb5f0c6fbae881b1887c936ae961a29d0c；PayCID217b7a62951cc32d28d8cb2656b5300a79d8371ab4ba4f83dbde81021017c6f6/原4e4/bb76profile；Admin14b原不动，完整ENV/worker2/容量/模型2/2保持。静态t-sz072cmejzswx6o/c-sz072cmejzgffgg S0/D0，两leaf正常200/SHA实核，E/COVER-SPEED-PROGRESS-STATIC-PUBLISH001.ACTUAL-RESULT.json3032/726ba489；pointer→/var/www/noteai-public/cover-speed-progress-91b71e1a29b9-20261107-r1，manifest3ad65e1fddcfc544a81954f39523bd1d03ce3bbb284b00a042ce75046be6558e。原static/API回退均预备，必要时先static后同CASE整API/Pay；不回退active2或改WorkerC。
+
+正常9531UI确认余额2855.5/原82f/v2 1f35248e/6有效原照/8分后只点一次create，新job1afb31b8-a80e-4ef0-b79f-f62d284a5fc3/requestb4254184-dc57-4305-a19c-8d58012071f4/usageae0de27c-f426-491b-b7ca-ae4e571d49cb，created2026-11-07T01:56:08.550221Z。原正常DevTools Response逐字段留原POSTDTO，queued/revision0/预留8未扣；当前设计方向model_wait，累计及后台确认实际显示。PC及真正393x852/scrollWidth393 H5截图已见新六步卡，未用无效viewport能力结果冒H5；真实iPhone保存未测。旧D3仍保留，不把旧图当新成果。正在同任务关闭/刷新/重开验证，无第二create。权威P nested real_cover含唯一ID，接续仅查原1afb，未知不重发，首张合格后停→免费改字/保存库重开/真实PNG下载及原app-role唯一8账。模型费沿已核原余额19.71和用户充值授权，不充值/不新资源。
+
+
+### CURRENT 2026-11-07 1afb合格保存并实际下载；提速验收尚未通过，工作继续
+
+原1afb成功保存，UI总用时12分15秒，比旧D3约11分32秒更慢，不能以模型往返减少或合成fixture4+1替代真实提速通过。原正常免费改字“番禺万博9层→番禺万博·9层”已确认保存不另扣，正常filePicker保存 E/NoteAI-9531-speed-progress-cover.png，真实PNG1776×2368/RGB/2677307B/SHAf36677bed9238fe64c0c51330931d378db4606ee851daa19a3d7d3f8a9ccd913，Root已view，非旧D3。成品保存至2026-11-10 10:08北京时间，UI实扣8；完整唯一账/新revision2/精确timestamp/QC/成本及safe timing仍待既有finalRO实际回执。原APP_ROLE reader五实际字段已填，只本地binder准备；Root继续保存库重开和独审，不创建第二任务。
+
+新card已实证队列→2/6设计→4/6原照排版、真实持续累计/本步/worker确认、关闭刷新后继续原任务；5分14秒时实显当前工作和可关闭重开、不取消、不交付不扣文案；H5真实393×852/scrollWidth393，无横溢，DevTools已关且恢复PC。旧D3图在新任务进行时保留，未冒新成果。现场一次只读checkpoint t-sz072cnceq5ga2o S0/D0：3模型请求（含在途），已完成1=79.747s、2=293.495s均200，render工具1次failed/first_draft_fallback=true，原流程恢复，无compaction/input rejection/未知；只能断言本地工具抛错，不能编为字体或几何根因。后续code-only只读t-sz072cntha4madc S0/D0，终态正常cleanup已清私有SDK原件，结果unavailable/FileNotFound；未重建/重发/篡造原请求。
+
+目前真实功能闭环尚在免费末节验收，提速未验收。下一Root原finalRO拿精确阶段/调用/成本和账→独审真实成品及保存库重开→依据实测作最小收敛修正；不盲增上限或付费重试。权威P状态REAL_COVER_SAVED_DOWNLOADED_LATENCY_NOT_ACCEPTED、原job/PNG全存。维护原窗口已发进行中只读交接，send成功但一次wait工具失败，不能声称已实收；最终仍要核实接手方实际读证据。Root仍唯一发布方，当前生产91b71/API79071/static3ad65/config2，旧所有费用/UNKNOWN保留。
